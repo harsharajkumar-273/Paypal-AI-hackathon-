@@ -14,28 +14,32 @@ A buyer commissions a bounded website repair with a fixed price and agreed check
 
 Buyer-approved standing rules permit capture of an existing PayPal sandbox authorization when the agreement, evidence, scope, and spending limits match. Failed checks stop payment; subjective work and policy exceptions require attention. The agent cannot change its own checks, price, authorization, or payment rules.
 
+If a buyer reports a payment problem, ProofPay saves the original agreement and delivery evidence and pauses future automatic captures. The seller reviews the case and can issue a full or partial refund against the original capture. A confirmed refund retains its provider record, and the buyer explicitly decides when to resume automation.
+
 ## PayPal and AI
 
-PayPal supports authorization, conditional capture, voiding, webhook verification, and reconciliation. Each task has an existing buyer-approved authorization. Standing rules do not create arbitrary new charges or subscriptions. One sandbox seller operates the agent and receives payment; the model itself does not own an account. Authorization is not escrow.
+The PayPal adapter implements authorization, conditional capture, voiding, full/partial refunds, webhook verification, and reconciliation. Each task has an existing buyer-approved authorization. One sandbox seller operates the agent and receives payment.
 
 OpenAI produces actual booking-handler code from the defective source and browser observations. The repair loop stores the generated artifact and tests it separately from the model. OpenAI also supports criterion suggestions, scope advice, and evidence summaries for human projects. AI output cannot override deterministic payment eligibility.
 
 ## Specific contribution
 
-This prototype connects an agent-written artifact, independent acceptance evidence, a versioned agreement, buyer-approved payment limits, and a sandbox capture in one reviewable record. It deliberately focuses on a small repair adapter so the entire workflow can be inspected. We do not claim to be the first verified agent-payment product or a general marketplace.
+This prototype connects an agent-written artifact, independent acceptance evidence, a versioned agreement, buyer-approved payment limits, and payment recovery in one reviewable record. It focuses on a small repair adapter so the entire workflow can be inspected.
 
-## Working status and honest disclosure
+## Validation status
 
-The default no-key walkthrough uses authored broken/corrected fixtures and simulated payments. The real repair agent requires an OpenAI API key and never substitutes the fixed fixture for generated code. Automated acceptance tests use a deterministic model adapter with real Chromium; they are not evidence of a live OpenAI call. Actual OpenAI and PayPal sandbox execution must be demonstrated before the final submission claims those integrations worked live.
+The local suite passes 43 domain/API/payment/recovery tests and 4 browser tests. The default walkthrough uses authored fixtures and simulated payments; agent acceptance tests use a deterministic model adapter with real Chromium. Actual OpenAI and PayPal sandbox runs, publication, and deployment remain pending. Update this section with observed provider-run results before submitting.
 
-This project uses PayPal’s standard Orders/Payments APIs. It does not claim access to PayPal’s separately onboarded Agentic Commerce Services.
+## Limits
+
+The project uses standard PayPal Orders/Payments sandbox APIs, not separately onboarded Agentic Commerce Services. It supports one seller and a bounded website-repair task. An authorization is a temporary hold, not escrow; standing rules capture an existing authorization rather than create arbitrary new charges. Support cases receive human review, with no guaranteed recovery or legal adjudication. See the complete [product limits](../README.md#limits).
 
 ## Video and submission checklist
 
 Use the [agent-work demo script](AGENT_DEMO.md) for the primary pitch. Keep the freelancer workflow as a second use case.
 
 - Publish the source repository with its MIT license and verified setup instructions.
-- Deploy the web service, browser worker, and PostgreSQL database; set the final public URL and credentials.
+- Provide complete setup instructions or a hosted working build, as allowed by the supplied rules. For the hosted route, deploy web/worker/PostgreSQL and configure the final URL and credentials.
 - Record an actual AI-generated repair, independent browser checks, and real sandbox authorization/capture. Show the corresponding artifact and receipt.
 - Upload a public YouTube video under three minutes. Label any time compression or fallback footage.
 - Include measured timing and actual user feedback only after collecting them. Do not invent testimonials, savings, novelty claims, or likely prize rankings.

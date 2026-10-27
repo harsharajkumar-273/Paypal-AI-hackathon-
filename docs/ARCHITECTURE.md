@@ -2,9 +2,11 @@
 
 ## Data flow
 
-React → same-origin Express API → PostgreSQL → job queue → separate Playwright worker → evidence report → explicit buyer capture → PayPal sandbox.
+React → same-origin Express API → PostgreSQL job queue → bounded OpenAI repair loop → independent Playwright verification → artifact and evidence → buyer-approved standing rules or explicit buyer capture → PayPal sandbox.
 
-OpenAI handles structured suggestions, scope advice, and summaries. Its outputs never authorize payment or run executable code. A model failure preserves recorded browser evidence; an unavailable verifier produces an error/inconclusive result, never a pass.
+OpenAI proposes booking-handler code, criteria, scope advice, and summaries. The worker runs generated HTML/JavaScript only in the restricted browser artifact context; it never executes model output through Node or a shell. The model cannot change agreed checks or authorize payment. A model failure preserves recorded browser evidence; an unavailable verifier produces an error/inconclusive result, never a pass. Human deliveries use the same verifier and payment eligibility rules without the repair loop.
+
+Buyer support cases snapshot the agreement and evidence, pause automatic capture, and lead to seller review and optional full/partial refund. Only the buyer can clear the recovery pause once cases and pending refunds are resolved.
 
 Local development uses PGlite with the same PostgreSQL schema. Hosted web and worker share a PostgreSQL database. Workspaces contain versioned agreement aggregates in JSONB. Optimistic revision checks retry synchronous mutations safely across processes. Payment network operations occur outside retried mutations. Jobs use an atomic update with `FOR UPDATE SKIP LOCKED`. The worker reclassifies jobs abandoned for more than three minutes as errors.
 
@@ -14,6 +16,7 @@ Local development uses PGlite with the same PostgreSQL schema. Hosted web and wo
 - `sessions`: hashed random token, workspace ID, fixed buyer/developer role, demo flag, expiration. Real invites never become client-side permanent role selectors.
 - `jobs`: agreement/run/workspace IDs, queue state, start time, creation time.
 - `webhook_events`: unique PayPal event ID, verified body, processing flag, timestamp.
+- `agent_artifacts`: immutable generated HTML, full SHA-256 digest, and owning workspace/agreement identifiers.
 - Agreements retain brief, price in integer USD cents, approved delivery URL, due date, criteria, version-specific approvals, payment record, runs, manual acceptances, and an event timeline. A replacement has a new ID and links back to its predecessor.
 
 Screenshots are stored with check results in JSONB for this small prototype. The API returns authenticated evidence URLs rather than base64 payloads in the workspace response. External object storage is appropriate for a larger installation.

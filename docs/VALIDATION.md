@@ -41,6 +41,7 @@ No AI, PayPal sandbox, Render, or database-hosting credentials were present duri
 
 ## Recovery validation
 
+- Completed the interface walkthrough: buyer reported a simulated $75 capture, seller recorded a review and full simulated refund, and buyer saw a $0 refundable balance. Standing rules remained under a safety pause after refund confirmation. See [recovery preview](recovery-preview.png).
 - Full and partial simulated refunds retain the original capture receipt and enforce cumulative balance limits.
 - Concurrent refund attempts cannot exceed the captured amount; identical request IDs do not duplicate refunds.
 - A simulated network failure keeps the amount reserved. Retrying preserves the exact request ID, amount, and note; provider status reconciliation confirms completion.
