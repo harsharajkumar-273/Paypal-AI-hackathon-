@@ -30,7 +30,7 @@ This prototype connects an agent-written artifact, independent acceptance eviden
 
 ## Validation status
 
-The local suite passes 63 domain/API/payment/recovery/agreement-change tests and 4 browser tests. The default walkthrough uses authored fixtures and simulated payments; agent acceptance tests use a deterministic model adapter with real Chromium. Sandbox OAuth and buyer-approved authorization have succeeded; live AI delivery, capture/refund, webhook delivery and deployment remain pending. Source is published publicly with the MIT license. Update this section with observed provider-run results before submitting.
+The local suite passes 70 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 browser tests. The default walkthrough uses authored fixtures and simulated payments; agent acceptance tests use a deterministic model adapter with real Chromium. Sandbox OAuth and buyer-approved authorization have succeeded; live AI delivery, capture/refund, webhook delivery and deployment remain pending. Source is published publicly with the MIT license. Update this section with observed provider-run results before submitting.
 
 ## Limits
 
@@ -38,7 +38,7 @@ The project uses standard PayPal Orders/Payments sandbox APIs, not separately on
 
 ## Video and submission checklist
 
-Use the [agent-work demo script](AGENT_DEMO.md) for the primary pitch. Keep the freelancer workflow as a second use case.
+Use the [agent-work demo script](AGENT_DEMO.md) for the configured-provider video. The no-key interactive guide demonstrates the payment and verification mechanics using clearly labeled authored fixtures. Keep the human freelancer workflow as a second use case.
 
 - Publish the source repository with its MIT license and verified setup instructions.
 - Provide complete setup instructions or a hosted working build, as allowed by the supplied rules. For the hosted route, deploy web/worker/PostgreSQL and configure the final URL and credentials.

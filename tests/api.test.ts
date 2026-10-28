@@ -669,3 +669,49 @@ test('agreement change permissions, private notifications, and proposal-bound co
     409,
   );
 });
+
+test('guided demo creates a fresh private workspace and requires an observed failure to continue', async () => {
+  const original = await visitor();
+  const start = await request('/demo/walkthrough', {}, original.cookie);
+  assert.equal(start.res.status, 201);
+  const cookie = start.res.headers.get('set-cookie')!.split(';')[0];
+  const guide = (await request('/workspace', undefined, cookie)).data;
+  assert.notEqual(guide.id, original.w.id);
+  assert.equal(guide.role, 'buyer');
+  assert.equal(guide.demo, true);
+  assert.equal(guide.agreements.length, 1);
+  assert.equal(guide.agreements[0].amount, 7500);
+  assert.equal(guide.agreements[0].criteria.length, 5);
+  assert.equal(guide.agreements[0].payment.mode, 'demo');
+  assert.equal(guide.agreements[0].runs.length, 0);
+  assert.equal(guide.walkthrough.agreementId, start.data.id);
+  assert.equal(guide.paymentRules.enabled, false);
+  assert.equal((await request('/demo/walkthrough/continue', {}, cookie)).res.status, 409);
+  assert.equal((await request('/demo/walkthrough/terms', {}, cookie)).res.status, 403);
+  await request('/demo/role', { role: 'developer' }, cookie);
+  assert.equal((await request('/demo/walkthrough/terms', {}, cookie)).res.status, 409);
+  assert.equal((await request('/workspace', undefined, original.cookie)).data.id, original.w.id);
+});
+test('merchant sessions cannot create or advance fictional walkthroughs', async () => {
+  const priorDev = process.env.DEVELOPER_INVITE,
+    priorBuyer = process.env.BUYER_INVITE;
+  process.env.DEVELOPER_INVITE = 'guide-business-invitation-'.repeat(2);
+  process.env.BUYER_INVITE = 'guide-buyer-invitation-'.repeat(2);
+  try {
+    const session = await request('/session', { invite: process.env.BUYER_INVITE });
+    assert.equal(session.res.status, 200);
+    const cookie = session.res.headers.get('set-cookie')!.split(';')[0];
+    for (const endpoint of [
+      '/demo/walkthrough',
+      '/demo/walkthrough/continue',
+      '/demo/walkthrough/terms',
+    ])
+      assert.equal((await request(endpoint, {}, cookie)).res.status, 403);
+    assert.equal((await request('/workspace', undefined, cookie)).data.demo, false);
+  } finally {
+    if (priorDev === undefined) delete process.env.DEVELOPER_INVITE;
+    else process.env.DEVELOPER_INVITE = priorDev;
+    if (priorBuyer === undefined) delete process.env.BUYER_INVITE;
+    else process.env.BUYER_INVITE = priorBuyer;
+  }
+});

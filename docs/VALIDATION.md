@@ -5,7 +5,7 @@
 - TypeScript validation and Vite production build.
 - Initial prototype fresh-source check: npm ci and production build passed without existing node_modules or generated assets. The expanded agent build also passes TypeScript and Vite checks.
 - Source formatting check passed.
-- Current automated suite: 63 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change tests and 4 passing browser acceptance tests.
+- Current automated suite: 70 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change/walkthrough tests and 5 passing browser acceptance tests.
 - Completed the full simulated walkthrough through the interface, including both roles, both deliveries, manual acceptance, scope advice fallback, and receipt.
 - Observed local UI run durations: 7.6 seconds for the broken fixture and 3.8 seconds for the corrected fixture. These are individual development-machine observations, not benchmarks.
 - Real Chromium fixture test: broken delivery returns four automated passes and a failed booking check; corrected delivery returns five automated passes. Screenshots are captured and manual design remains a buyer decision.
@@ -81,3 +81,13 @@ PayPal sandbox OAuth and buyer-approved authorization are confirmed in the provi
 - Interface check: acknowledged both demo changes, reloaded and confirmed persistence, verified the open question still disabled acceptance, marked the sample question no longer blocking, and reopened it to confirm the hold returned. The proposal remains pending for inspection.
 
 - Resolution must reference the latest thread message. A stale screen cannot dismiss a newer reply. See the [buyer decision preview](review-progress-preview.png) and [updated summary](terms-review-preview.png).
+
+## Guided walkthrough validation
+
+- The five-chapter guide derives progress from recorded approvals, rule consent, authorizations, browser runs, and confirmed capture. It pauses on the real failed reservation until the visitor continues, and never infers a receipt from checks alone.
+- Fresh-start setup creates a separate demo workspace and session. The original demo’s records are retained; merchant sessions cannot start or advance the guide. Demo funds remain simulated even when PayPal credentials are configured.
+- Unit cases cover missing approvals/rules, queued/errored/inconclusive checks, failure-review continuation, newer failed corrections, and capture confirmation.
+- The browser acceptance case exercises the actual API, queue, worker, Chromium checks, authenticated screenshot, four-pass/one-fail delivery, five-pass correction, and automatic simulated capture. The optional terms chapter is idempotent and leaves the original capture intact.
+- Completed the same flow through the interface, opened the actual failed-check screenshot, resumed at the recorded receipt, and opened the separate follow-up job’s $2-plus-data-sharing proposal. See the [fresh start](walkthrough-start-preview.png) and [recorded receipt](walkthrough-preview.png).
+- The guided fixture worker uses a factual template summary, even when a model key is configured. Its browser acceptance test rejects any attempted model call and confirms none occur. The guided core does not wait for an AI summary or require model credentials.
+- These are authored fixtures and simulated payments, not an actual AI-generated repair or an additional PayPal sandbox transaction.

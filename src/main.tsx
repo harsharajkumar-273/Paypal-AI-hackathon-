@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ArrowUpRight,
@@ -42,6 +42,7 @@ import type { Agreement, Criterion, Role, Workspace, Run, Result } from '../serv
 import type { PaymentRules, AutoDecision } from '../server/automation';
 import { RecoveryPanel, RecoveryBanner, ReportProblemModal } from './Recovery';
 import { TermsReviewPanel, ChangeNotice } from './TermsReview';
+import { GuidedWalkthrough, WalkthroughInvite } from './GuidedWalkthrough';
 import './styles.css';
 type State = Workspace & {
   role: Role;
@@ -105,7 +106,10 @@ function App() {
     [phone, setPhone] = useState(false),
     [query, setQuery] = useState(''),
     [preview, setPreview] = useState<'broken' | 'fixed'>('broken'),
+    [guideOpen, setGuideOpen] = useState(false),
+    [guideTarget, setGuideTarget] = useState<string | null>(null),
     [evidence, setEvidence] = useState<Result | null>(null);
+  const projectRef = useRef<HTMLElement>(null);
   const refresh = useCallback(async () => {
     const w = await api('/workspace');
     setState(w);
@@ -172,6 +176,21 @@ function App() {
     const id = setTimeout(() => setNotice(''), 5500);
     return () => clearTimeout(id);
   }, [notice]);
+  useEffect(() => {
+    if (
+      guideOpen ||
+      !guideTarget ||
+      selected !== guideTarget ||
+      !state?.agreements.some((a) => a.id === guideTarget)
+    )
+      return;
+    const frame = requestAnimationFrame(() => {
+      projectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      projectRef.current?.focus({ preventScroll: true });
+      setGuideTarget(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [guideOpen, guideTarget, selected, state]);
   async function act(label: string, fn: () => Promise<any>) {
     if (busy) return;
     setBusy(label);
@@ -185,6 +204,33 @@ function App() {
     } finally {
       setBusy('');
     }
+  }
+  function launchGuide(fresh = false) {
+    if (!state?.demo) {
+      setModal('help');
+      return;
+    }
+    setModal(null);
+    setError('');
+    if (
+      !fresh &&
+      state.walkthrough &&
+      state.agreements.some((a) => a.id === state.walkthrough!.agreementId)
+    ) {
+      setSelected(state.walkthrough.agreementId);
+      setFilter('All projects');
+      setQuery('');
+      setGuideOpen(true);
+      return;
+    }
+    void act('Preparing your private guided example', async () => {
+      const result = await api('/demo/walkthrough', {});
+      setSelected(result.id);
+      setFilter('All projects');
+      setQuery('');
+      setTab('Agreement');
+      setGuideOpen(true);
+    });
   }
   const action = (suffix: string, body: unknown = {}) => api(`/agreements/${a!.id}${suffix}`, body);
   const switchRole = (r: Role) => act('Switching view', () => api('/demo/role', { role: r }));
@@ -395,6 +441,14 @@ function App() {
               </button>
             </div>
           </div>
+          {state?.demo && (
+            <WalkthroughInvite
+              resume={Boolean(state.walkthrough)}
+              busy={busy}
+              onStart={() => launchGuide(true)}
+              onResume={() => launchGuide()}
+            />
+          )}
           {state?.recoveryPause && (
             <RecoveryBanner
               workspace={state}
@@ -527,7 +581,12 @@ function App() {
               )}
               {a && (
                 <div className="project-layout">
-                  <section className="project-card">
+                  <section
+                    ref={projectRef}
+                    className="project-card"
+                    tabIndex={-1}
+                    aria-label={a.title}
+                  >
                     <div className="project-header">
                       <div className="client-icon">
                         s<span>.</span>
@@ -1564,8 +1623,8 @@ function App() {
                             Buyer
                           </button>
                         </div>
-                        <button className="text-button" onClick={() => setModal('help')}>
-                          Follow the demo story
+                        <button className="text-button" onClick={() => launchGuide()}>
+                          Open the guided demo
                           <ArrowRight size={13} />
                         </button>
                         {state.role === 'developer' && (
@@ -1642,71 +1701,43 @@ function App() {
         </div>
       )}
       {modal === 'help' && (
-        <Modal title="A clear path from brief to paid." onClose={() => setModal(null)} wide>
+        <Modal title="One story. From agreement to receipt." onClose={() => setModal(null)} wide>
           <p className="modal-intro">
-            In this isolated walkthrough, switch between Business and Buyer using the control beside
-            your project. Payments are simulated; browser checks are real.
+            A café’s booking form looks ready, but fails the agreed test. ProofPay records the
+            failure, verifies the correction, and pays within the buyer’s approved limits.
           </p>
-          <ol className="guide-steps">
-            <li>
-              <strong>Agree on the finish line.</strong>
-              <p>
-                Open Agreement. Approve as Business, switch to Buyer, then approve the same version.
-              </p>
-            </li>
-            <li>
-              <strong>Authorize before delivery.</strong>
-              <p>As Buyer, start and confirm the simulated authorization in Payment summary.</p>
-            </li>
-            <li>
-              <strong>Find the broken booking form.</strong>
-              <p>
-                Switch to Business. Open Evidence and check the first delivery. Inspect its failure
-                and screenshots.
-              </p>
-            </li>
-            <li>
-              <strong>Prove the fix.</strong>
-              <p>
-                Check the corrected delivery. Switch to Buyer and accept the visual direction after
-                reviewing the page.
-              </p>
-            </li>
-            <li>
-              <strong>Finish with confidence.</strong>
-              <p>
-                As Buyer, approve and simulate payment. The receipt and event record appear
-                immediately.
-              </p>
-            </li>
-          </ol>
-          <div className="info-box">
-            <Zap size={19} />
-            <p>
-              For automatic payment, try the objective-only update from the walkthrough card. As
-              Buyer, set and explicitly enable Standing payment rules. Once both parties approve and
-              the buyer authorizes, a passing delivery can be paid without another payment click.
-              The original café project still needs its required visual review.
-            </p>
+          <div className="guide-story-cards">
+            <div>
+              <span>01</span>
+              <strong>Agree</strong>
+              <p>A fixed price and five observable checks.</p>
+            </div>
+            <div>
+              <span>02</span>
+              <strong>Prove</strong>
+              <p>An actual browser exposes the failure and tests the correction.</p>
+            </div>
+            <div>
+              <span>03</span>
+              <strong>Pay</strong>
+              <p>Approved rules determine whether a delivery earns payment.</p>
+            </div>
           </div>
-          <div className="info-box">
-            <Sparkles size={19} />
-            <p>
-              Scope changes are advisory. Without an AI key, a request is marked “unclear” for human
-              review. To test a replacement, do it before capture: Buyer voids authorization,
-              Business drafts a replacement, both approve again.
-            </p>
-          </div>
-          <button
-            className="button primary"
-            onClick={() => {
-              setModal(null);
-              setTab('Agreement');
-            }}
-          >
-            Start with the agreement
-            <ArrowRight size={15} />
-          </button>
+          <p className="quiet">
+            The interactive guide uses authored website fixtures and simulated payments.
+            Model-backed agent work is available separately when AI is configured.
+          </p>
+          {state?.demo ? (
+            <button className="button primary" disabled={!!busy} onClick={() => launchGuide()}>
+              {state.walkthrough ? 'Resume interactive demo' : 'Start interactive demo'}
+              <ArrowRight size={15} />
+            </button>
+          ) : (
+            <button className="button primary" onClick={() => setModal(null)}>
+              Return to merchant workspace
+              <ArrowRight size={15} />
+            </button>
+          )}
         </Modal>
       )}
       {modal === 'report' && a && (
@@ -1789,6 +1820,40 @@ function App() {
               setModal(null);
             })
           }
+        />
+      )}
+      {guideOpen && state?.demo && state.walkthrough && (
+        <GuidedWalkthrough
+          key={state.id}
+          workspace={state}
+          busy={busy}
+          error={error}
+          act={act}
+          call={api}
+          ai={state.aiConfigured}
+          onClose={() => setGuideOpen(false)}
+          onRestart={() => launchGuide(true)}
+          obscured={Boolean(evidence)}
+          onEvidence={setEvidence}
+          onExplore={(id, nextTab) => {
+            setGuideTarget(id);
+            setSelected(id);
+            setFilter('All projects');
+            setQuery('');
+            setTab(nextTab);
+            setGuideOpen(false);
+          }}
+          onReport={() => {
+            setSelected(state.walkthrough!.agreementId);
+            setFilter('All projects');
+            setQuery('');
+            setGuideOpen(false);
+            setModal('report');
+          }}
+          onAgent={() => {
+            setGuideOpen(false);
+            setModal('agentTask');
+          }}
         />
       )}
       {evidence && (
@@ -2185,12 +2250,16 @@ function Modal({
   children: React.ReactNode;
   wide?: boolean;
 }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const openerRef = useRef(document.activeElement as HTMLElement | null);
   useEffect(() => {
-    const opener = document.activeElement as HTMLElement;
+    const opener = openerRef.current;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') closeRef.current();
       if (e.key === 'Tab') {
-        const dialog = document.querySelector('[role=dialog]');
+        const dialog = dialogRef.current;
         const nodes = Array.from(
           dialog?.querySelectorAll<HTMLElement>(
             'button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled)',
@@ -2213,9 +2282,13 @@ function Modal({
     return () => {
       document.removeEventListener('keydown', handler);
       document.body.style.overflow = prior;
-      opener?.focus();
+      if (
+        document.activeElement === document.body ||
+        dialogRef.current?.contains(document.activeElement)
+      )
+        opener?.focus();
     };
-  }, [onClose]);
+  }, []);
   return (
     <div
       className="modal-backdrop"
@@ -2224,6 +2297,7 @@ function Modal({
       }}
     >
       <section
+        ref={dialogRef}
         className={'modal ' + (wide ? 'wide' : '')}
         role="dialog"
         aria-modal="true"

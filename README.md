@@ -36,13 +36,19 @@ Open **http://localhost:5173**. Each visitor receives an isolated walkthrough wo
 
 The default walkthrough uses authored café fixtures and **simulated payments** with `DEMO-` identifiers. Browser checks and screenshots run in actual Chromium. The model-backed repair requires an OpenAI key.
 
-To exercise objective verification and automatic payment:
+Click **Start interactive demo** on the welcome card. The guide creates a fresh private example and leads through five chapters:
 
-1. As **Business**, choose **Try an objective-only update** in the walkthrough card.
-2. Approve the agreement as Business, switch to Buyer, and approve the same version.
-3. Create and confirm the simulated authorization. Enable **Standing payment rules** with limits covering the task.
-4. As Business, check the broken delivery and inspect its failed booking check. Check the corrected delivery; its five passing checks permit simulated capture under the standing rules.
-5. As Buyer, inspect the receipt and select **Report a problem**. As Business, review the case and issue a simulated refund. Switch to Buyer to see the confirmed result and the remaining safety pause.
+1. **Agree:** inspect the $75 booking repair and five checks, then approve both fictional demo roles with one action.
+2. **Authorize:** explicitly enable the displayed $75-per-job / $150-monthly demo rules and authorize virtual funds.
+3. **Find the failure:** run the actual browser checks, inspect the failed reservation and its screenshot, then continue.
+4. **Verify the fix:** submit the authored corrected fixture to the same checks. Passing evidence permits automatic simulated capture under the rules you enabled.
+5. **Receipt:** inspect the recorded `DEMO-` transaction, delivery results, and policy. Optional chapters open a $2-plus-data-sharing proposal for a **separate follow-up job**, or a buyer support case on the paid example.
+
+The guide handles role switches, shows live worker progress, and resumes from persisted records. On narrow screens, the next action stays pinned at the bottom. Close it at any time to explore the underlying workspace; **Continue demo** returns to the current chapter. **Restart in a fresh private demo** creates a new isolated example. Merchant sessions cannot invoke these demo setup routes.
+
+![Interactive walkthrough receipt](docs/walkthrough-preview.png)
+
+The original manual workspace and objective-only update remain available for free exploration. The guided route does not need AI or PayPal credentials and does not claim an agent generated its delivery.
 
 ### Run the model-backed agent
 
@@ -52,7 +58,7 @@ An isolated walkthrough with an OpenAI key uses actual model calls and simulated
 
 ## Current verification
 
-The local build passes **63 domain/API/payment/recovery/agreement-change tests and 4 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
+The local build passes **70 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
 
 **PayPal sandbox authentication and a buyer-approved $75 authorization have succeeded. Live AI-generated delivery, sandbox capture/refund, webhook delivery and hosted deployment remain pending.** The [source repository](https://github.com/harsharajkumar-273/Paypal-AI-hackathon-) is public under the MIT license. See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
 

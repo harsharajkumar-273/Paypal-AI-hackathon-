@@ -76,7 +76,10 @@ export async function tick() {
       });
       let summary;
       try {
-        summary = await summarize(results, a.criteria);
+        summary =
+          w.demo && w.walkthrough?.agreementId === a.id
+            ? `${results.filter((r) => r.status === 'pass').length} browser checks passed. ${results.filter((r) => r.status === 'fail').length} failed. ${results.filter((r) => r.status === 'inconclusive').length} inconclusive. Authored walkthrough delivery; findings come from the browser runner.`
+            : await summarize(results, a.criteria);
       } catch {
         summary =
           'AI summary unavailable. The browser evidence below remains valid; review each result.';

@@ -158,6 +158,12 @@ export type Agreement = z.infer<typeof agreementInput> & {
   automation?: AutoDecision;
 };
 export type Workspace = {
+  walkthrough?: {
+    agreementId: string;
+    startedAt: string;
+    failureReviewedAt?: string;
+    termsAgreementId?: string;
+  };
   id: string;
   demo: boolean;
   agreements: Agreement[];

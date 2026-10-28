@@ -483,6 +483,113 @@ export function createApp() {
       res.status(201).json({ id: a.id });
     }),
   );
+  app.post(
+    '/api/demo/walkthrough',
+    rateLimit({ windowMs: 3600000, limit: 12, legacyHeaders: false }),
+    handle(async (req: Authed, res) => {
+      ensure(
+        req.auth.demo,
+        'The guided walkthrough is only available in an isolated demo session.',
+        403,
+      );
+      const w = seedWorkspace(randomUUID(), true),
+        a = w.agreements[0];
+      a.title = 'Fix Sunday Café’s booking form';
+      a.amount = 7500;
+      a.criteria = a.criteria.filter((c) => c.type !== 'manual');
+      a.brief =
+        'Repair the Sunday Café booking form. Preserve the headline, menu link, required name and email fields, successful test reservation, and 390px mobile layout. This example uses authored broken and corrected deliveries; the browser verification is real.';
+      a.events = [];
+      event(
+        a,
+        'Guided example created',
+        'Authored website fixtures; actual browser checks; simulated payments. No AI-generated delivery is claimed.',
+      );
+      w.walkthrough = { agreementId: a.id, startedAt: new Date().toISOString() };
+      await createWorkspace(w);
+      await session(res, w, 'buyer');
+      res.status(201).json({ id: a.id });
+    }),
+  );
+  app.post(
+    '/api/demo/walkthrough/continue',
+    handle(async (req: Authed, res) => {
+      ensure(req.auth.demo, 'Only isolated demo sessions can use the walkthrough.', 403);
+      await mutate(req.auth.workspace_id, (w) => {
+        ensure(w.walkthrough, 'Start the guided example first.');
+        const a = find(w, w.walkthrough.agreementId);
+        ensure(
+          a.runs.some(
+            (r) =>
+              r.url === 'fixture:broken' &&
+              r.status === 'completed' &&
+              r.results.some((result) => result.status === 'fail'),
+          ),
+          'Wait for the first delivery’s failed check before continuing.',
+        );
+        w.walkthrough.failureReviewedAt ||= new Date().toISOString();
+      });
+      res.json({ ok: true });
+    }),
+  );
+  app.post(
+    '/api/demo/walkthrough/terms',
+    handle(async (req: Authed, res) => {
+      ensure(req.auth.demo, 'Only isolated demo sessions can use the walkthrough.', 403);
+      role(req, 'developer');
+      const id = await mutate(req.auth.workspace_id, (w) => {
+        ensure(w.walkthrough, 'Start the guided example first.');
+        ensure(
+          find(w, w.walkthrough.agreementId).payment.status === 'captured',
+          'Complete the core example first.',
+        );
+        if (w.walkthrough.termsAgreementId) return w.walkthrough.termsAgreementId;
+        ensure(w.agreements.length < 20, 'Workspace agreement limit reached.');
+        const next = seedWorkspace(randomUUID(), true).agreements[0];
+        next.title = 'Sunday Café’s next booking update';
+        next.amount = 7500;
+        next.brief =
+          'Deliver a follow-up booking-flow update for Sunday Café. Preserve the approved headline, menu destination, required name and email fields, successful test reservation, and 390px mobile layout. This separate example covers objective work only.';
+        next.criteria = next.criteria.filter((c) => c.type !== 'manual');
+        next.events = [];
+        event(
+          next,
+          'Guided change example',
+          'A separate future job. The completed delivery and its receipt stay unchanged.',
+        );
+        w.agreements.unshift(next);
+        w.walkthrough.termsAgreementId = next.id;
+        return next.id;
+      });
+      const a = find(await getWorkspace(req.auth.workspace_id), id);
+      if (!a.changes?.length)
+        try {
+          await approve(req.auth.workspace_id, id, 'developer');
+          await approve(req.auth.workspace_id, id, 'buyer');
+          await proposeChange(req.auth.workspace_id, id, {
+            baseVersion: a.version,
+            amount: 7700,
+            brief: a.brief,
+            dueAt: a.dueAt,
+            effectiveAt: new Date().toISOString(),
+            reason:
+              'Example: the business says operating costs increased. The explanation is a claim for the buyer to evaluate.',
+            criteria: a.criteria,
+            terms: [
+              {
+                id: 'usage-sharing',
+                title: 'Usage data sharing',
+                text: 'The service may share booking-flow usage data with analytics partners for product improvement.',
+              },
+            ],
+          });
+        } catch (err) {
+          const latest = find(await getWorkspace(req.auth.workspace_id), id);
+          if (!latest.changes?.length) throw err;
+        }
+      res.json({ id });
+    }),
+  );
   app.get(
     '/api/evidence/:agreement/:run/:criterion',
     handle(async (req: Authed, res) => {
