@@ -89,6 +89,10 @@ export function evaluateAutomaticPayment(
       'Automatic payments are paused. The buyer can still approve a qualifying payment manually.',
     );
   if (a.payment.busy) return result('pending', 'A payment operation is already in progress.');
+  if (a.changes?.some((c) => c.status === 'pending'))
+    return result('review', 'Changed agreement terms require a new buyer decision.');
+  if (a.effectiveAt && Date.parse(a.effectiveAt) > now.getTime())
+    return result('blocked', 'The changed agreement is not effective yet.');
   if (['cancelled', 'superseded', 'completed'].includes(a.status))
     return result('blocked', 'This agreement is closed.');
   const blocked: string[] = [],

@@ -26,6 +26,10 @@ export function idle(a: Agreement) {
 }
 export function editable(a: Agreement) {
   idle(a);
+  ensure(
+    !a.changes?.some((c) => c.status === 'pending'),
+    'Resolve the proposed terms before editing.',
+  );
   ensure(a.status === 'draft', 'Only a draft agreement can be edited.');
   ensure(
     ['none', 'voided', 'expired'].includes(a.payment.status),
@@ -93,6 +97,14 @@ export async function createAuthorization(workspace: string, id: string) {
     'create',
     (a) => {
       ensure(
+        !a.changes?.some((c) => c.status === 'pending'),
+        'Review the proposed terms before authorizing payment.',
+      );
+      ensure(
+        !a.effectiveAt || Date.parse(a.effectiveAt) <= Date.now(),
+        'Changed terms are not effective yet.',
+      );
+      ensure(
         !a.cases?.some(isCaseOpen),
         'Resolve this payment’s support case before authorizing again.',
       );
@@ -145,6 +157,14 @@ export async function confirmAuthorization(workspace: string, id: string) {
     id,
     'authorize',
     (a) => {
+      ensure(
+        !a.changes?.some((c) => c.status === 'pending'),
+        'Review the proposed terms before confirming authorization.',
+      );
+      ensure(
+        !a.effectiveAt || Date.parse(a.effectiveAt) <= Date.now(),
+        'Changed terms are not effective yet.',
+      );
       ensure(
         !a.cases?.some(isCaseOpen),
         'Resolve this payment’s support case before authorizing again.',

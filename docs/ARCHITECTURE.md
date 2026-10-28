@@ -111,3 +111,21 @@ Refund operations reserve the amount and payment-operation lock in the workspace
 Webhook event IDs are deduplicated as before. Refund notifications match stored provider refund IDs and trigger server-side retrieval; event prose is never a refund decision. External refund/dispute imports and a full PayPal Disputes integration are outside this adapter; preserve the PayPal escalation path rather than imply universal dispute coverage.
 
 Case and money-state mutations remain version checked and workspace scoped. Refunds can be issued only by the seller role. Only the buyer may resume standing rules, and the server refuses while cases or pending refunds remain open. AI has no refund or case-rejection authority.
+
+## Agreement-change review
+
+Optional agreement `terms`, `changes`, `effectiveAt`, and `changeOrigin` fields extend existing JSONB records. A change retains full before/after snapshots, a canonical base digest, a proposal digest covering both snapshots/effective time/business reason, deterministic field-level differences, business approval timestamp, private messages, and buyer decision. No synthetic baseline clauses are added to existing agreements.
+
+| Route                                               | Role               | Purpose                                                         |
+| --------------------------------------------------- | ------------------ | --------------------------------------------------------------- |
+| `POST /api/agreements/:id/changes`                  | Business/Developer | Publish one pending fixed-price/brief/check/clause proposal     |
+| `POST /api/agreements/:id/changes/:change/review`   | Buyer              | Request schema-validated advisory AI explanation                |
+| `POST /api/agreements/:id/changes/:change/messages` | Member             | Ask or answer a private question                                |
+| `POST /api/agreements/:id/changes/:change/decision` | Buyer              | Accept exact proposal digest or decline and keep original terms |
+| `POST /api/agreements/:id/changes/:change/withdraw` | Business/Developer | Withdraw proposal with audit history                            |
+
+Publishing pauses manual and automatic capture for that agreement and prevents draft editing or scope-replacement bypass. Existing capture operations and running jobs must finish before a proposal can be published. Buyer acceptance requires explicit acknowledgement, decision note, matching snapshot/digest, and no existing usable order/authorization. The replacement retains the recorded proposed terms and business/buyer approval times, but resets payment, manual acceptance, and browser/agent runs. Authorization and capture enforce the effective time. Repeated acceptance cannot create duplicate replacements.
+
+The AI receives full old/new documents and exact differences, with business explanation labeled as an unverified claim. Findings have fixed categories and reference exact changed fields; quotes must be present verbatim in that field’s old or new value. A failed schema/citation/provider result records `unavailable` and cannot change agreement or money state. A generation token prevents overlapping reviews from replacing newer results. This validates source references, not the completeness or legal correctness of model reasoning.
+
+In-app notifications derive from persisted pending proposals and remain workspace-scoped. Active pages poll for updates and refresh on focus. No external email/SMS is sent, and there is no cross-buyer campaign or recurring subscription billing. Acceptance records support the application’s consent workflow, not legal certification.

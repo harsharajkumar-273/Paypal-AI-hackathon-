@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { PaymentRules, AutoDecision } from './automation.js';
 import type { AgentRun } from './agent.js';
+import type { AgreementClause, AgreementChange } from './changes.js';
 export const criterionSchema = z
   .object({
     id: z.string().min(1).max(80),
@@ -129,6 +130,10 @@ export type Payment = {
   refunds?: RefundRecord[];
 };
 export type Agreement = z.infer<typeof agreementInput> & {
+  terms?: AgreementClause[];
+  changes?: AgreementChange[];
+  effectiveAt?: string;
+  changeOrigin?: { agreementId: string; proposalId: string };
   id: string;
   version: number;
   status: 'draft' | 'active' | 'completed' | 'cancelled' | 'superseded';
@@ -191,6 +196,8 @@ export function eligible(a: Agreement) {
   return (
     approved(a) &&
     a.status === 'active' &&
+    !a.changes?.some((c) => c.status === 'pending') &&
+    (!a.effectiveAt || Date.parse(a.effectiveAt) <= Date.now()) &&
     run?.status === 'completed' &&
     a.criteria
       .filter((c) => c.required)
@@ -202,6 +209,14 @@ export function eligible(a: Agreement) {
   );
 }
 export function assertPaymentReady(a: Agreement) {
+  ensure(
+    !a.changes?.some((c) => c.status === 'pending'),
+    'Review the proposed agreement changes before payment.',
+  );
+  ensure(
+    !a.effectiveAt || Date.parse(a.effectiveAt) <= Date.now(),
+    'Changed terms are not effective yet.',
+  );
   ensure(!a.cases?.some(isCaseOpen), 'Resolve this payment’s open support case before capture.');
   ensure(eligible(a), 'Complete the agreed checks and accept manual criteria before payment.');
   ensure(

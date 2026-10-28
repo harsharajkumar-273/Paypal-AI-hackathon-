@@ -52,9 +52,9 @@ An isolated walkthrough with an OpenAI key uses actual model calls and simulated
 
 ## Current verification
 
-The local build passes **43 domain/API/payment/recovery tests and 4 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
+The local build passes **55 domain/API/payment/recovery/agreement-change tests and 4 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
 
-**Actual OpenAI calls, PayPal sandbox transactions, hosted deployment, and public repository publication remain pending.** See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
+**PayPal sandbox authentication and a buyer-approved $75 authorization have succeeded. Live AI-generated delivery, sandbox capture/refund, webhook delivery, hosted deployment, and public repository publication remain pending.** See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
 
 ```sh
 npm run build
@@ -64,6 +64,16 @@ npm run format:check
 ```
 
 If Chromium uses a custom installation directory, set `PLAYWRIGHT_BROWSERS_PATH` consistently for installation, app execution, and tests. On Linux, Chromium may require system dependencies: `npx playwright install --with-deps chromium`.
+
+## Agreement changes and buyer-side review
+
+Open **Terms review** to propose a new fixed price, work brief, deadline, or additional clauses. The business records its explanation and approves the exact proposal; the buyer receives a persistent in-app notice and payment on that job pauses. The comparison highlights non-price changes, shows every addition/removal, and keeps both complete recorded versions accessible.
+
+The buyer-side AI reader examines the old and new documents for cost, data, permissions, service, cancellation, and legal wording. Each finding must identify a changed field and quote text actually present there. An unsupported citation or provider failure yields an unavailable review, never approval. The business’s reason remains a separately labeled claim. Without an AI key, the exact comparison and private question thread still work.
+
+Acceptance records the proposal digest, version, time, and decision note. An existing order/authorization must first be voided; the accepted replacement starts with no payment or delivery evidence and needs a fresh authorization and verification. Future-effective terms cannot authorize payment early. Declining explicitly keeps the original terms; spending limits alone never accept a proposal.
+
+For the demonstration, open an unpaid café job as Developer and load **+$2 and a data-sharing clause**. Publish, switch to Buyer, inspect both changes, and ask which partners receive data before deciding. Notifications are inside the current agreement workspace; this is not subscription repricing, email broadcasting, or a multi-buyer business portal. See [architecture](docs/ARCHITECTURE.md#agreement-change-review).
 
 ## Human delivery and scope changes
 

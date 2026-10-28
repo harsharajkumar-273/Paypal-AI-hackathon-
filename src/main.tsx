@@ -41,6 +41,7 @@ import {
 import type { Agreement, Criterion, Role, Workspace, Run, Result } from '../server/domain';
 import type { PaymentRules, AutoDecision } from '../server/automation';
 import { RecoveryPanel, RecoveryBanner, ReportProblemModal } from './Recovery';
+import { TermsReviewPanel, ChangeNotice } from './TermsReview';
 import './styles.css';
 type State = Workspace & {
   role: Role;
@@ -57,6 +58,7 @@ type Tab =
   | 'Evidence'
   | 'Activity'
   | 'Scope changes'
+  | 'Terms review'
   | 'Agent work'
   | 'Resolution';
 const money = (n: number) =>
@@ -142,25 +144,28 @@ function App() {
   const a = list.find((a) => a.id === selected) || list[0],
     run = a?.runs.filter((r) => r.version === a.version)[0];
   useEffect(() => {
-    if (
-      !state ||
-      !state.agreements.some(
-        (a) =>
-          a.runs.some((r) => r.status === 'queued' || r.status === 'running') ||
-          Boolean(a.payment.busy) ||
-          a.payment.status === 'capture_pending' ||
-          a.payment.refunds?.some((r) => r.status === 'pending') ||
-          a.cases?.some((c) =>
-            ['requested', 'under_review', 'refund_pending', 'partially_refunded'].includes(
-              c.status,
-            ),
-          ) ||
-          (state.paymentRules?.enabled && a.status === 'active'),
-      )
-    )
-      return;
-    const id = setInterval(() => void refresh().catch((e) => setError(e.message)), 1600);
-    return () => clearInterval(id);
+    if (!state) return;
+    const active = state.agreements.some(
+      (a) =>
+        a.runs.some((r) => r.status === 'queued' || r.status === 'running') ||
+        Boolean(a.payment.busy) ||
+        a.payment.status === 'capture_pending' ||
+        a.payment.refunds?.some((r) => r.status === 'pending') ||
+        a.cases?.some((c) =>
+          ['requested', 'under_review', 'refund_pending', 'partially_refunded'].includes(c.status),
+        ) ||
+        a.changes?.some((c) => c.status === 'pending') ||
+        (state.paymentRules?.enabled && a.status === 'active'),
+    );
+    const reload = () => {
+      if (!document.hidden) void refresh().catch((e) => setError(e.message));
+    };
+    const id = setInterval(reload, active ? 1600 : 10000);
+    window.addEventListener('focus', reload);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', reload);
+    };
   }, [state, refresh]);
   useEffect(() => {
     if (!notice) return;
@@ -185,6 +190,8 @@ function App() {
   const switchRole = (r: Role) => act('Switching view', () => api('/demo/role', { role: r }));
   const ready = Boolean(
     a &&
+    !a.changes?.some((c) => c.status === 'pending') &&
+    (!a.effectiveAt || Date.parse(a.effectiveAt) <= Date.now()) &&
     !a.cases?.some((c) =>
       ['requested', 'under_review', 'refund_pending', 'partially_refunded'].includes(c.status),
     ) &&
@@ -392,6 +399,17 @@ function App() {
               }
             />
           )}
+          {state && (
+            <ChangeNotice
+              agreements={state.agreements}
+              onOpen={(id) => {
+                setSelected(id);
+                setFilter('All projects');
+                setQuery('');
+                setTab('Terms review');
+              }}
+            />
+          )}
           {error && (
             <div className="alert error" role="alert">
               <AlertCircle size={17} />
@@ -535,6 +553,7 @@ function App() {
                           'Evidence',
                           'Activity',
                           'Scope changes',
+                          'Terms review',
                           ...(a.cases?.length ||
                           ['created', 'authorized', 'capture_pending', 'captured'].includes(
                             a.payment.status,
@@ -553,6 +572,8 @@ function App() {
                           {t}
                           {t === 'Evidence' && run && <span>{run.results.length}</span>}
                           {t === 'Scope changes' && a.scope && <i />}
+                          {t === 'Terms review' &&
+                            a.changes?.some((c) => c.status === 'pending') && <i />}
                         </button>
                       ))}
                     </div>
@@ -1089,6 +1110,24 @@ function App() {
                           onReplacement={(id) => {
                             setSelected(id);
                             setTab('Agreement');
+                          }}
+                        />
+                      )}
+                      {tab === 'Terms review' && (
+                        <TermsReviewPanel
+                          key={a.id}
+                          a={a}
+                          role={state.role}
+                          ai={state.aiConfigured}
+                          demo={state.demo}
+                          busy={busy}
+                          act={act}
+                          action={action}
+                          onReplacement={(id) => {
+                            setSelected(id);
+                            setFilter('All projects');
+                            setQuery('');
+                            setTab('Terms review');
                           }}
                         />
                       )}

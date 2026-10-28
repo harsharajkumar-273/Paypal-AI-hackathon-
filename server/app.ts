@@ -33,6 +33,13 @@ import { propose, compareScope } from './ai.js';
 import { paypalConfigured, verifyWebhook } from './paypal.js';
 import { safeUrl } from './verifier.js';
 import { cafeHtml } from './fixtures.js';
+import {
+  proposeChange,
+  decideChange,
+  reviewChange,
+  changeMessage,
+  withdrawChange,
+} from './changes.js';
 import { artifactHeaders } from './agent.js';
 import {
   paymentRulesInput,
@@ -486,6 +493,68 @@ export function createApp() {
   );
   const aiLimit = rateLimit({ windowMs: 600000, limit: 12, legacyHeaders: false });
   app.post(
+    '/api/agreements/:id/changes',
+    handle(async (req: Authed, res) => {
+      role(req, 'developer');
+      res
+        .status(201)
+        .json(await proposeChange(req.auth.workspace_id, req.params.id as string, req.body));
+    }),
+  );
+  app.post(
+    '/api/agreements/:id/changes/:change/review',
+    aiLimit,
+    handle(async (req: Authed, res) => {
+      role(req, 'buyer');
+      res.json(
+        await reviewChange(
+          req.auth.workspace_id,
+          req.params.id as string,
+          req.params.change as string,
+        ),
+      );
+    }),
+  );
+  app.post(
+    '/api/agreements/:id/changes/:change/decision',
+    handle(async (req: Authed, res) => {
+      role(req, 'buyer');
+      res.json(
+        await decideChange(
+          req.auth.workspace_id,
+          req.params.id as string,
+          req.params.change as string,
+          req.body,
+        ),
+      );
+    }),
+  );
+  app.post(
+    '/api/agreements/:id/changes/:change/messages',
+    handle(async (req: Authed, res) => {
+      await changeMessage(
+        req.auth.workspace_id,
+        req.params.id as string,
+        req.params.change as string,
+        req.auth.role,
+        req.body,
+      );
+      res.json({ ok: true });
+    }),
+  );
+  app.post(
+    '/api/agreements/:id/changes/:change/withdraw',
+    handle(async (req: Authed, res) => {
+      role(req, 'developer');
+      await withdrawChange(
+        req.auth.workspace_id,
+        req.params.id as string,
+        req.params.change as string,
+      );
+      res.json({ ok: true });
+    }),
+  );
+  app.post(
     '/api/ai/criteria',
     aiLimit,
     handle(async (req: Authed, res) => {
@@ -762,6 +831,10 @@ export function createApp() {
         idle(a);
         ensure(a.scope, 'Add a scope request first.');
         ensure(
+          !a.changes?.some((c) => c.status === 'pending'),
+          'Resolve the proposed terms before drafting a scope replacement.',
+        );
+        ensure(
           a.payment.status === 'voided',
           'Void the existing authorization before creating a replacement.',
         );
@@ -787,6 +860,7 @@ export function createApp() {
           automation: undefined,
           agentRuns: [],
           cases: [],
+          changes: [],
           createdAt: new Date().toISOString(),
           dueAt: new Date(Date.now() + 48 * 3600000).toISOString(),
         };

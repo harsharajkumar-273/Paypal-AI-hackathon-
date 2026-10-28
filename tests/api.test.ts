@@ -497,3 +497,115 @@ test('verified refund webhook confirms a tracked pending refund exactly once', a
     delete process.env.PAYPAL_WEBHOOK_ID;
   }
 });
+
+test('agreement change permissions, private notifications, and proposal-bound consent', async () => {
+  const x = await visitor(),
+    y = await visitor();
+  const original = x.w.agreements[0];
+  const proposal = {
+    baseVersion: original.version,
+    amount: original.amount + 200,
+    brief: original.brief,
+    dueAt: original.dueAt,
+    effectiveAt: new Date().toISOString(),
+    reason: 'Operating costs increased; this is the business explanation.',
+    criteria: original.criteria,
+    terms: [
+      {
+        id: 'analytics',
+        title: 'Analytics data sharing',
+        text: 'Usage data may be shared with analytics partners.',
+      },
+    ],
+  };
+  const path = `/agreements/${x.id}/changes`;
+  const created = await request(path, proposal, x.cookie);
+  assert.equal(created.res.status, 201);
+  const cid = created.data.id;
+  assert.equal((await request(path, proposal, x.cookie)).res.status, 409);
+  assert.equal(
+    (await request(path + '/' + cid + '/decision', { decision: 'accept' }, x.cookie)).res.status,
+    403,
+  );
+  assert.equal((await request(path + '/' + cid + '/review', {}, x.cookie)).res.status, 403);
+  assert.equal(
+    (
+      await request(
+        path + '/' + cid + '/messages',
+        { text: 'Attempt to read another buyer terms.' },
+        y.cookie,
+      )
+    ).res.status,
+    404,
+  );
+  assert.equal(
+    (await request('/workspace', undefined, y.cookie)).data.agreements.some(
+      (a: any) => a.changes?.length,
+    ),
+    false,
+  );
+  await request('/demo/role', { role: 'buyer' }, x.cookie);
+  assert.equal((await request(path, proposal, x.cookie)).res.status, 403);
+  assert.equal((await request(path + '/' + cid + '/withdraw', {}, x.cookie)).res.status, 403);
+  assert.equal(
+    (
+      await request(
+        path + '/' + cid + '/messages',
+        { text: 'Which partners receive my usage data?' },
+        x.cookie,
+      )
+    ).res.status,
+    200,
+  );
+  const a = (await request('/workspace', undefined, x.cookie)).data.agreements[0],
+    c = a.changes[0];
+  assert.equal(c.status, 'pending');
+  assert.equal(c.diffs.length, 2);
+  assert.equal(
+    (await request(`/agreements/${x.id}`, { criteria: original.criteria }, x.cookie, 'PATCH')).res
+      .status,
+    409,
+  );
+  assert.equal(
+    (
+      await request(
+        path + '/' + cid + '/decision',
+        {
+          decision: 'accept',
+          digest: c.proposalDigest,
+          acknowledge: false,
+          note: 'I have reviewed all changed terms.',
+        },
+        x.cookie,
+      )
+    ).res.status,
+    400,
+  );
+  const accepted = await request(
+    path + '/' + cid + '/decision',
+    {
+      decision: 'accept',
+      digest: c.proposalDigest,
+      acknowledge: true,
+      note: 'I reviewed the price and added data clause.',
+    },
+    x.cookie,
+  );
+  assert.equal(accepted.res.status, 200);
+  assert.ok(accepted.data.replacementId);
+  assert.equal(
+    (
+      await request(
+        path + '/' + cid + '/decision',
+        {
+          decision: 'accept',
+          digest: c.proposalDigest,
+          acknowledge: true,
+          note: 'A repeated acceptance of the same terms.',
+        },
+        x.cookie,
+      )
+    ).res.status,
+    409,
+  );
+});

@@ -16,6 +16,8 @@ Buyer-approved standing rules permit capture of an existing PayPal sandbox autho
 
 If a buyer reports a payment problem, ProofPay saves the original agreement and delivery evidence and pauses future automatic captures. The seller reviews the case and can issue a full or partial refund against the original capture. A confirmed refund retains its provider record, and the buyer explicitly decides when to resume automation.
 
+The business can also propose changed agreement terms. A buyer sees the exact price delta and every non-price change, asks questions, and uses an advisory AI reader whose findings quote changed clauses. New terms require explicit version-bound consent and a fresh payment authorization; existing spending rules cannot silently accept them.
+
 ## PayPal and AI
 
 The PayPal adapter implements authorization, conditional capture, voiding, full/partial refunds, webhook verification, and reconciliation. Each task has an existing buyer-approved authorization. One sandbox seller operates the agent and receives payment.
@@ -28,7 +30,7 @@ This prototype connects an agent-written artifact, independent acceptance eviden
 
 ## Validation status
 
-The local suite passes 43 domain/API/payment/recovery tests and 4 browser tests. The default walkthrough uses authored fixtures and simulated payments; agent acceptance tests use a deterministic model adapter with real Chromium. Actual OpenAI and PayPal sandbox runs, publication, and deployment remain pending. Update this section with observed provider-run results before submitting.
+The local suite passes 55 domain/API/payment/recovery/agreement-change tests and 4 browser tests. The default walkthrough uses authored fixtures and simulated payments; agent acceptance tests use a deterministic model adapter with real Chromium. Sandbox OAuth and buyer-approved authorization have succeeded; live AI delivery, capture/refund, webhook delivery, publication, and deployment remain pending. Update this section with observed provider-run results before submitting.
 
 ## Limits
 

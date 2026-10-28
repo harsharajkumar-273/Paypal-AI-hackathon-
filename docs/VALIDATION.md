@@ -5,13 +5,19 @@
 - TypeScript validation and Vite production build.
 - Initial prototype fresh-source check: npm ci and production build passed without existing node_modules or generated assets. The expanded agent build also passes TypeScript and Vite checks.
 - Source formatting check passed.
-- Current automated suite: 43 passing domain/API/standing-rule/payment-adapter/recovery tests and 4 passing browser acceptance tests.
+- Current automated suite: 55 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change tests and 4 passing browser acceptance tests.
 - Completed the full simulated walkthrough through the interface, including both roles, both deliveries, manual acceptance, scope advice fallback, and receipt.
 - Observed local UI run durations: 7.6 seconds for the broken fixture and 3.8 seconds for the corrected fixture. These are individual development-machine observations, not benchmarks.
 - Real Chromium fixture test: broken delivery returns four automated passes and a failed booking check; corrected delivery returns five automated passes. Screenshots are captured and manual design remains a buyer decision.
 - Dependency audit after upgrading Zod: zero known vulnerabilities reported.
 
 See the current test suite for the exact assertions; rerun it after configuration or deployment changes.
+
+## Provider connection check
+
+- PayPal sandbox OAuth authentication returned HTTP 200 with the configured REST app credentials. The running local app reports `paypalConfigured: true` and `aiConfigured: false`. Secrets remain in the ignored local `.env`; no access token is stored in this record.
+- After the user approved checkout with a sandbox personal buyer, the application confirmed an actual $75 sandbox authorization through the configured REST app. The stored payment status is `authorized`, with a provider authorization ID and expiry; no capture was issued and standing rules remain disabled.
+- Sandbox capture, refund, and verified webhook delivery still need an end-to-end provider run. The model-backed delivery is also pending AI configuration.
 
 ## Agent-work validation
 
@@ -24,7 +30,7 @@ See the current test suite for the exact assertions; rerun it after configuratio
 
 ## Not yet verified
 
-No AI, PayPal sandbox, Render, or database-hosting credentials were present during initial implementation. Consequently, a live model-generated repair, a real OpenAI call, actual PayPal authorization/capture, external PostgreSQL deployment, Render deployment, public repository publication, and YouTube upload are **not** claimed as completed.
+PayPal sandbox OAuth and buyer-approved authorization are confirmed in the provider connection check above. A live model-generated repair, an actual OpenAI call, sandbox capture/refund, verified provider webhook delivery, external PostgreSQL deployment, Render deployment, public repository publication, and YouTube upload remain unverified.
 
 ## Launch acceptance
 
@@ -50,3 +56,12 @@ No AI, PayPal sandbox, Render, or database-hosting credentials were present duri
 - Cases snapshot agreement/evidence data, block capture of the affected agreement, pause new automatic payments across the workspace, and require explicit buyer resumption.
 - Buyer/seller permissions, cross-workspace isolation, case reopening, partial-settlement acceptance, and authorization cancellation are covered.
 - Actual PayPal sandbox refunds and external PayPal disputes remain unverified without configured accounts. No refund guarantee or legal adjudication is claimed.
+
+## Agreement-change validation
+
+- Proposed changes preserve immutable old/new snapshots, business explanation, effective time, exact diffs, and a canonical proposal SHA-256. JSONB object-key ordering does not create false check changes.
+- Pending proposals block manual capture, new authorization, and standing-rule capture for the affected agreement. Cross-workspace access, wrong-role decisions, missing consent, stale versions, modified digests, and duplicate acceptance are rejected.
+- Accepting after void creates a new version with fresh approvals and no inherited payment or verification results. A future effective time blocks premature authorization. Declining or withdrawal retains the original terms and records the decision.
+- The buyer can ask about changed clauses in a private persisted thread. Review failure leaves the proposal pending with the complete exact comparison available.
+- A mocked model response validates full-document review and exact changed-clause citations; fabricated references and quotations are rejected. This is not a live AI review.
+- Completed the interface proposal flow with a $2 fixed-price increase and added data-sharing clause, switched to Buyer, verified two exact changes and consent controls, and recorded a buyer question. The isolated demo proposal remains pending for inspection.
