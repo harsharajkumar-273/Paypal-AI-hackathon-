@@ -30,7 +30,7 @@ See the current test suite for the exact assertions; rerun it after configuratio
 
 ## Not yet verified
 
-PayPal sandbox OAuth and buyer-approved authorization are confirmed in the provider connection check above. A live model-generated repair, an actual OpenAI call, sandbox capture/refund, verified provider webhook delivery, external PostgreSQL deployment, Render deployment, public repository publication, and YouTube upload remain unverified.
+PayPal sandbox OAuth and buyer-approved authorization are confirmed in the provider connection check above. A live model-generated repair, an actual OpenAI call, sandbox capture/refund, verified provider webhook delivery, external PostgreSQL deployment, Render deployment and YouTube upload remain unverified.
 
 ## Launch acceptance
 
@@ -65,3 +65,9 @@ PayPal sandbox OAuth and buyer-approved authorization are confirmed in the provi
 - The buyer can ask about changed clauses in a private persisted thread. Review failure leaves the proposal pending with the complete exact comparison available.
 - A mocked model response validates full-document review and exact changed-clause citations; fabricated references and quotations are rejected. This is not a live AI review.
 - Completed the interface proposal flow with a $2 fixed-price increase and added data-sharing clause, switched to Buyer, verified two exact changes and consent controls, and recorded a buyer question. The isolated demo proposal remains pending for inspection.
+
+## Repository publication
+
+- Published source to https://github.com/harsharajkumar-273/Paypal-AI-hackathon- on branch `main`. GitHub reports public visibility and recognizes the root MIT license.
+- Verified all published commits map to `harsharajkumar-273`; the contributor list contains only that account and there are no co-author trailers.
+- Configured secrets, local sessions, embedded databases, browser installations, and build output are excluded. The configured-secret source scan passed before publication.
