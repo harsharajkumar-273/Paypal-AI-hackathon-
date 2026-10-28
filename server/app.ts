@@ -39,6 +39,10 @@ import {
   reviewChange,
   changeMessage,
   withdrawChange,
+  saveBuyerReview,
+  resolveChangeQuestion,
+  changeReceipt,
+  currentChange,
 } from './changes.js';
 import { artifactHeaders } from './agent.js';
 import {
@@ -552,6 +556,44 @@ export function createApp() {
         req.params.change as string,
       );
       res.json({ ok: true });
+    }),
+  );
+  app.post(
+    '/api/agreements/:id/changes/:change/checklist',
+    handle(async (req: Authed, res) => {
+      role(req, 'buyer');
+      await saveBuyerReview(
+        req.auth.workspace_id,
+        req.params.id as string,
+        req.params.change as string,
+        req.body,
+      );
+      res.json({ ok: true });
+    }),
+  );
+  app.post(
+    '/api/agreements/:id/changes/:change/questions/:question',
+    handle(async (req: Authed, res) => {
+      role(req, 'buyer');
+      await resolveChangeQuestion(
+        req.auth.workspace_id,
+        req.params.id as string,
+        req.params.change as string,
+        req.params.question as string,
+        req.body,
+      );
+      res.json({ ok: true });
+    }),
+  );
+  app.get(
+    '/api/agreements/:id/changes/:change/receipt',
+    handle(async (req: Authed, res) => {
+      const w = await getWorkspace(req.auth.workspace_id),
+        a = find(w, req.params.id as string),
+        c = currentChange(a, req.params.change as string);
+      res.setHeader('Cache-Control', 'no-store');
+      res.attachment('proofpay-change-' + c.id + '.json');
+      res.json(changeReceipt(a, c));
     }),
   );
   app.post(

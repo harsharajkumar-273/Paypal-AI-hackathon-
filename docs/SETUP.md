@@ -37,7 +37,7 @@ Generate each invitation separately with `openssl rand -hex 32`. Share it privat
 1. Set the API key and selected model on the process executing the agent. With a separate worker, configure the key/model on both web and worker.
 2. In the isolated walkthrough or merchant workspace, commission the bounded agent task as Buyer.
 3. Approve the same version with both roles, authorize payment, and explicitly enable standing rules covering the price and monthly budget.
-4. As Developer, open **Agent work** and start the agent. Inspect its baseline, generated patch, independent results, artifact digest, and evidence.
+4. As Business, open **Agent work** and start the agent. Inspect its baseline, generated patch, independent results, artifact digest, and evidence.
 5. Record actual duration and outcome in [VALIDATION.md](VALIDATION.md). A failed model call or unsuccessful repair is an observed failure, not a completed demonstration.
 
 ## PayPal sandbox run
@@ -49,7 +49,7 @@ Use a sandbox business seller and a different sandbox personal buyer. Configure 
 3. Register the public HTTPS `/api/paypal/webhook` endpoint in the same sandbox app. Subscribe to relevant payment authorization, capture, and capture-refund events, and set its webhook ID on the web service.
 4. Commission an agent task, approve both roles, and create an authorization as Buyer.
 5. Select **Continue on PayPal**, approve with the sandbox buyer account, return, and choose **I approved · confirm authorization**. Check the provider authorization ID.
-6. Enable standing rules and run the agent as Developer. After successful independent checks, inspect the capture receipt and confirm the transaction in the seller’s sandbox account.
+6. Enable standing rules and run the agent as Business. After successful independent checks, inspect the capture receipt and confirm the transaction in the seller’s sandbox account.
 7. Retry/reconcile as appropriate and confirm there is only one capture. Test a verified duplicate webhook and an invalid-signature rejection.
 8. Open a support case as Buyer. Review and issue a refund as Seller. Confirm its provider status and seller-account record, then verify automation stays paused until the buyer resumes it.
 

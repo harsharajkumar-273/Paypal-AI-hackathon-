@@ -65,7 +65,17 @@ export type AgreementChange = {
   replacementId?: string;
   decidedAt?: string;
   decisionNote?: string;
-  messages: { id: string; role: Role; text: string; at: string }[];
+  buyerReview?: { proposalDigest: string; refs: string[]; updatedAt: string };
+  consent?: { proposalDigest: string; reviewedRefs: string[]; at: string; note: string };
+  messages: {
+    id: string;
+    role: Role;
+    text: string;
+    at: string;
+    threadId?: string;
+    ref?: string;
+    resolution?: { at: string; note: string };
+  }[];
 };
 export function snapshot(a: Agreement): TermsSnapshot {
   return structuredClone({
@@ -94,6 +104,16 @@ function canonical(value: unknown): string {
   return JSON.stringify(value);
 }
 export const digest = (s: TermsSnapshot) => createHash('sha256').update(canonical(s)).digest('hex');
+export const proposalHash = (
+  c: Pick<AgreementChange, 'before' | 'after' | 'effectiveAt' | 'reason'>,
+) =>
+  createHash('sha256')
+    .update(
+      canonical({ before: c.before, after: c.after, effectiveAt: c.effectiveAt, reason: c.reason }),
+    )
+    .digest('hex');
+export const openQuestions = (c: AgreementChange) =>
+  c.messages.filter((m) => m.role === 'buyer' && !m.threadId && !m.resolution);
 export function compareTerms(before: TermsSnapshot, after: TermsSnapshot): ChangeDiff[] {
   const diffs: ChangeDiff[] = [];
   const add = (ref: string, title: string, b: string, a: string) => {
@@ -199,7 +219,10 @@ export function currentChange(a: Agreement, id: string) {
 }
 function unchanged(a: Agreement, c: AgreementChange) {
   ensure(
-    c.status === 'pending' && a.version === c.baseVersion && digest(snapshot(a)) === c.digest,
+    c.status === 'pending' &&
+      a.version === c.baseVersion &&
+      digest(snapshot(a)) === c.digest &&
+      proposalHash(c) === c.proposalDigest,
     'Proposal is stale or already resolved. Reload the agreement.',
   );
 }
@@ -220,6 +243,15 @@ export async function decideChange(workspace: string, id: string, changeId: stri
     ensure(c.proposalDigest === input.digest, 'The reviewed proposal does not match.');
     const now = new Date().toISOString();
     if (input.decision === 'accept') {
+      ensure(
+        c.buyerReview?.proposalDigest === c.proposalDigest &&
+          c.diffs.every((d) => c.buyerReview!.refs.includes(d.ref)),
+        'Acknowledge each recorded change before accepting.',
+      );
+      ensure(
+        openQuestions(c).length === 0,
+        'Address or explicitly dismiss your open questions before accepting.',
+      );
       ensure(
         ['none', 'voided', 'expired'].includes(a.payment.status),
         'Void the previous PayPal authorization/order before accepting changed terms.',
@@ -251,6 +283,12 @@ export async function decideChange(workspace: string, id: string, changeId: stri
         createdAt: now,
       };
       a.status = 'superseded';
+      c.consent = {
+        proposalDigest: c.proposalDigest,
+        reviewedRefs: [...c.buyerReview!.refs],
+        at: now,
+        note: input.note,
+      };
       c.status = 'accepted';
       c.replacementId = replacement.id;
       event(
@@ -396,19 +434,150 @@ export async function changeMessage(
   role: Role,
   raw: unknown,
 ) {
-  const { text } = z.object({ text: z.string().trim().min(5).max(2000) }).parse(raw);
+  const { text, threadId, ref } = z
+    .object({
+      text: z.string().trim().min(5).max(2000),
+      threadId: z.string().uuid().optional(),
+      ref: z.string().max(100).optional(),
+    })
+    .parse(raw);
   await mutate(workspace, (w) => {
     const a = find(w, id),
       c = currentChange(a, changeId);
     unchanged(a, c);
     ensure(c.messages.length < 40, 'Message limit reached.');
-    c.messages.push({ id: randomUUID(), role, text, at: new Date().toISOString() });
+    if (ref)
+      ensure(
+        c.diffs.some((d) => d.ref === ref),
+        'Question refers to an unknown change.',
+        400,
+      );
+    if (threadId) {
+      const question = c.messages.find(
+        (m) => m.id === threadId && m.role === 'buyer' && !m.threadId,
+      );
+      ensure(question, 'Question thread not found.', 404);
+      question.resolution = undefined;
+    }
+    c.messages.push({ id: randomUUID(), role, text, threadId, ref, at: new Date().toISOString() });
     event(
       a,
       role === 'buyer' ? 'Buyer asked about changed terms' : 'Business answered a change question',
       text,
     );
   });
+}
+export async function saveBuyerReview(
+  workspace: string,
+  id: string,
+  changeId: string,
+  raw: unknown,
+) {
+  const input = z
+    .object({
+      digest: z.string().length(64),
+      refs: z
+        .array(z.string().min(1).max(100))
+        .max(64)
+        .refine((refs) => new Set(refs).size === refs.length, 'Duplicate change references.'),
+    })
+    .parse(raw);
+  await mutate(workspace, (w) => {
+    const a = find(w, id),
+      c = currentChange(a, changeId);
+    unchanged(a, c);
+    ensure(input.digest === c.proposalDigest, 'The proposal changed. Reload before reviewing.');
+    ensure(
+      input.refs.every((ref) => c.diffs.some((d) => d.ref === ref)),
+      'Review contains an unknown change.',
+      400,
+    );
+    c.buyerReview = {
+      proposalDigest: c.proposalDigest,
+      refs: input.refs,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+}
+export async function resolveChangeQuestion(
+  workspace: string,
+  id: string,
+  changeId: string,
+  questionId: string,
+  raw: unknown,
+) {
+  const input = z
+    .object({
+      resolved: z.boolean(),
+      note: z.string().trim().min(10).max(1000),
+      lastMessageId: z.string().uuid().optional(),
+    })
+    .parse(raw);
+  await mutate(workspace, (w) => {
+    const a = find(w, id),
+      c = currentChange(a, changeId);
+    unchanged(a, c);
+    const question = c.messages.find(
+      (m) => m.id === questionId && m.role === 'buyer' && !m.threadId,
+    );
+    ensure(question, 'Buyer question not found.', 404);
+    if (input.resolved) {
+      const latest = c.messages
+        .filter((m) => m.id === questionId || m.threadId === questionId)
+        .at(-1)!;
+      ensure(
+        input.lastMessageId === latest.id,
+        'Discussion changed. Read the latest reply before resolving this question.',
+      );
+    }
+    question.resolution = input.resolved
+      ? { at: new Date().toISOString(), note: input.note }
+      : undefined;
+    event(
+      a,
+      input.resolved
+        ? 'Buyer marked an agreement question addressed'
+        : 'Buyer reopened an agreement question',
+      input.note,
+    );
+  });
+}
+export function changeReceipt(a: Agreement, c: AgreementChange) {
+  const record = {
+    schemaVersion: 1,
+    agreementId: a.id,
+    proposalId: c.id,
+    versionBefore: c.baseVersion,
+    versionProposed: c.baseVersion + 1,
+    status: c.status,
+    before: c.before,
+    after: c.after,
+    diffs: c.diffs,
+    effectiveAt: c.effectiveAt,
+    businessExplanation: {
+      text: c.reason,
+      verification: 'Business claim; not independently verified.',
+    },
+    businessApprovedAt: c.proposerApprovedAt,
+    createdAt: c.createdAt,
+    buyerReview: c.buyerReview || null,
+    consent: c.consent || null,
+    decision: c.decidedAt
+      ? { at: c.decidedAt, note: c.decisionNote || null, replacementId: c.replacementId || null }
+      : null,
+    discussion: c.messages,
+    aiReview: c.review || null,
+    proposalIntegrity: {
+      algorithm: 'SHA-256',
+      serialization: 'sorted-key-json-v1',
+      storedDigest: c.proposalDigest,
+      recomputedDigest: proposalHash(c),
+      matches: proposalHash(c) === c.proposalDigest,
+    },
+    notice:
+      'Private application record of version-bound consent. A digest checks content consistency; it is not a digital signature, proof of reading, or legal certification.',
+  };
+  return { ...record, recordDigest: createHash('sha256').update(canonical(record)).digest('hex') };
 }
 export async function withdrawChange(workspace: string, id: string, changeId: string) {
   await mutate(workspace, (w) => {

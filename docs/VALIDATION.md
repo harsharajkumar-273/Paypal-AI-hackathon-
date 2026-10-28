@@ -5,7 +5,7 @@
 - TypeScript validation and Vite production build.
 - Initial prototype fresh-source check: npm ci and production build passed without existing node_modules or generated assets. The expanded agent build also passes TypeScript and Vite checks.
 - Source formatting check passed.
-- Current automated suite: 55 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change tests and 4 passing browser acceptance tests.
+- Current automated suite: 63 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change tests and 4 passing browser acceptance tests.
 - Completed the full simulated walkthrough through the interface, including both roles, both deliveries, manual acceptance, scope advice fallback, and receipt.
 - Observed local UI run durations: 7.6 seconds for the broken fixture and 3.8 seconds for the corrected fixture. These are individual development-machine observations, not benchmarks.
 - Real Chromium fixture test: broken delivery returns four automated passes and a failed booking check; corrected delivery returns five automated passes. Screenshots are captured and manual design remains a buyer decision.
@@ -71,3 +71,13 @@ PayPal sandbox OAuth and buyer-approved authorization are confirmed in the provi
 - Published source to https://github.com/harsharajkumar-273/Paypal-AI-hackathon- on branch `main`. GitHub reports public visibility and recognizes the root MIT license.
 - Verified all published commits map to `harsharajkumar-273`; the contributor list contains only that account and there are no co-author trailers.
 - Configured secrets, local sessions, embedded databases, browser installations, and build output are excluded. The configured-secret source scan passed before publication.
+
+## Buyer decision improvements
+
+- Acceptance requires every recorded diff to be acknowledged in a persisted buyer-only checklist tied to the proposal digest. Missing, partial, duplicate, unknown, or stale references cannot bypass acceptance checks.
+- Buyer questions can be linked to a specific change. Business replies do not resolve them; only a buyer can save a resolution explanation. New replies reopen the concern and block acceptance again. A buyer can decline without acknowledging or resolving proposed obligations.
+- Private JSON receipt export is authenticated, workspace-scoped, non-cacheable, and contains actual review/consent records and digest consistency checks. Cross-workspace export is rejected. Changed proposal content invalidates acceptance even when an older checklist exists.
+- Cancellation closes pending proposals without inventing consent. No new real provider transaction was created for these improvements.
+- Interface check: acknowledged both demo changes, reloaded and confirmed persistence, verified the open question still disabled acceptance, marked the sample question no longer blocking, and reopened it to confirm the hold returned. The proposal remains pending for inspection.
+
+- Resolution must reference the latest thread message. A stale screen cannot dismiss a newer reply. See the [buyer decision preview](review-progress-preview.png) and [updated summary](terms-review-preview.png).

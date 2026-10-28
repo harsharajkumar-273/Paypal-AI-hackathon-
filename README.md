@@ -38,21 +38,21 @@ The default walkthrough uses authored café fixtures and **simulated payments** 
 
 To exercise objective verification and automatic payment:
 
-1. As **Developer**, choose **Try an objective-only update** in the walkthrough card.
-2. Approve the agreement as Developer, switch to Buyer, and approve the same version.
+1. As **Business**, choose **Try an objective-only update** in the walkthrough card.
+2. Approve the agreement as Business, switch to Buyer, and approve the same version.
 3. Create and confirm the simulated authorization. Enable **Standing payment rules** with limits covering the task.
-4. As Developer, check the broken delivery and inspect its failed booking check. Check the corrected delivery; its five passing checks permit simulated capture under the standing rules.
-5. As Buyer, inspect the receipt and select **Report a problem**. As Developer, review the case and issue a simulated refund. Switch to Buyer to see the confirmed result and the remaining safety pause.
+4. As Business, check the broken delivery and inspect its failed booking check. Check the corrected delivery; its five passing checks permit simulated capture under the standing rules.
+5. As Buyer, inspect the receipt and select **Report a problem**. As Business, review the case and issue a simulated refund. Switch to Buyer to see the confirmed result and the remaining safety pause.
 
 ### Run the model-backed agent
 
-Set `OPENAI_API_KEY` in `.env` and restart. As Buyer, select **Commission agent task**, approve the agreement with both roles, authorize, and enable standing rules. As Developer, open **Agent work** and start the repair.
+Set `OPENAI_API_KEY` in `.env` and restart. As Buyer, select **Commission agent task**, approve the agreement with both roles, authorize, and enable standing rules. As Business, open **Agent work** and start the repair.
 
 An isolated walkthrough with an OpenAI key uses actual model calls and simulated payment. To use actual **PayPal sandbox transactions**, enter the shared merchant workspace using separate buyer/developer invitations. Follow the [configuration and provider-run guide](docs/SETUP.md).
 
 ## Current verification
 
-The local build passes **55 domain/API/payment/recovery/agreement-change tests and 4 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
+The local build passes **63 domain/API/payment/recovery/agreement-change tests and 4 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
 
 **PayPal sandbox authentication and a buyer-approved $75 authorization have succeeded. Live AI-generated delivery, sandbox capture/refund, webhook delivery and hosted deployment remain pending.** The [source repository](https://github.com/harsharajkumar-273/Paypal-AI-hackathon-) is public under the MIT license. See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
 
@@ -73,7 +73,11 @@ The buyer-side AI reader examines the old and new documents for cost, data, perm
 
 Acceptance records the proposal digest, version, time, and decision note. An existing order/authorization must first be voided; the accepted replacement starts with no payment or delivery evidence and needs a fresh authorization and verification. Future-effective terms cannot authorize payment early. Declining explicitly keeps the original terms; spending limits alone never accept a proposal.
 
-For the demonstration, open an unpaid café job as Developer and load **+$2 and a data-sharing clause**. Publish, switch to Buyer, inspect both changes, and ask which partners receive data before deciding. Notifications are inside the current agreement workspace; this is not subscription repricing, email broadcasting, or a multi-buyer business portal. See [architecture](docs/ARCHITECTURE.md#agreement-change-review).
+The buyer’s per-change acknowledgement checklist is saved against the proposal digest and survives reloads. Questions can reference a specific change and have threaded replies. Only the buyer can mark a question addressed or no longer blocking, with a saved explanation; new replies reopen that question. Acceptance requires a complete checklist and no open buyer questions. Declining does not require accepting any new obligation.
+
+Export a private JSON review/decision record with the full terms, comparison, model-review provenance, discussion, acknowledgements, decision, and digest consistency checks. The record is workspace-authenticated and is not a digital signature or proof that someone read the agreement.
+
+For the demonstration, open an unpaid café job as Business and load **+$2 and a data-sharing clause**. Publish, switch to Buyer, inspect both changes, and ask which partners receive data before deciding. Notifications are inside the current agreement workspace; this is not subscription repricing, email broadcasting, or a multi-buyer business portal. See [architecture](docs/ARCHITECTURE.md#agreement-change-review).
 
 ## Human delivery and scope changes
 

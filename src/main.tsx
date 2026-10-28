@@ -296,7 +296,7 @@ function App() {
           <div className="profile">
             <span className="profile-avatar">{state?.role === 'buyer' ? 'SC' : 'HK'}</span>
             <div>
-              <strong>{state?.role === 'buyer' ? 'Sunday Café' : 'Your developer view'}</strong>
+              <strong>{state?.role === 'buyer' ? 'Sunday Café' : 'Your business view'}</strong>
               <span>{state?.demo ? 'Isolated demo workspace' : 'Private workspace'}</span>
             </div>
             <button
@@ -317,7 +317,13 @@ function App() {
         <header className="topbar">
           <div className="breadcrumbs">
             Workspace <ChevronRight size={13} />
-            <span>Agent workspace</span>
+            <span>
+              {state?.role === 'buyer'
+                ? 'Buyer workspace'
+                : state?.role === 'developer'
+                  ? 'Business workspace'
+                  : 'Agent workspace'}
+            </span>
           </div>
           <div className="topbar-right">
             {state?.demo && (
@@ -330,7 +336,7 @@ function App() {
                   onChange={(e) => switchRole(e.target.value as Role)}
                 >
                   <option value="buyer">Buyer</option>
-                  <option value="developer">Developer</option>
+                  <option value="developer">Business</option>
                 </select>
               </label>
             )}
@@ -347,13 +353,21 @@ function App() {
         <div className="content">
           <div className="page-heading">
             <div>
-              <div className="eyebrow">AGENT WORK. VERIFIED.</div>
+              <div className="eyebrow">
+                {state?.role === 'buyer'
+                  ? 'BUYER · AGREEMENTS & PAYMENTS'
+                  : 'BUSINESS · DELIVERY & BUYER SUPPORT'}
+              </div>
               <h1>
                 Pay for proven
                 <br />
                 agent work<span>.</span>
               </h1>
-              <p>Commission the work. Verify the result. Pay within your rules.</p>
+              <p>
+                {state?.role === 'buyer'
+                  ? 'Review the work and the terms. Pay within your rules.'
+                  : 'Deliver work. Answer buyer questions. Get paid for proven results.'}
+              </p>
             </div>
             <div className="heading-actions">
               <button
@@ -784,7 +798,7 @@ function App() {
                                   {r === 'developer' ? 'D' : 'B'}
                                 </span>
                                 <div>
-                                  <strong>{r === 'developer' ? 'Developer' : 'Buyer'}</strong>
+                                  <strong>{r === 'developer' ? 'Business' : 'Buyer'}</strong>
                                   <span>
                                     {a.approvals[r]
                                       ? `Approved v${a.version} · ${date(a.approvals[r]!)}`
@@ -1540,7 +1554,7 @@ function App() {
                             disabled={!!busy}
                             onClick={() => switchRole('developer')}
                           >
-                            Developer
+                            Business
                           </button>
                           <button
                             className={state.role === 'buyer' ? 'active' : ''}
@@ -1630,15 +1644,14 @@ function App() {
       {modal === 'help' && (
         <Modal title="A clear path from brief to paid." onClose={() => setModal(null)} wide>
           <p className="modal-intro">
-            In this isolated walkthrough, switch between Developer and Buyer using the control
-            beside your project. Payments are simulated; browser checks are real.
+            In this isolated walkthrough, switch between Business and Buyer using the control beside
+            your project. Payments are simulated; browser checks are real.
           </p>
           <ol className="guide-steps">
             <li>
               <strong>Agree on the finish line.</strong>
               <p>
-                Open Agreement. Approve as Developer, switch to Buyer, then approve the same
-                version.
+                Open Agreement. Approve as Business, switch to Buyer, then approve the same version.
               </p>
             </li>
             <li>
@@ -1648,7 +1661,7 @@ function App() {
             <li>
               <strong>Find the broken booking form.</strong>
               <p>
-                Switch to Developer. Open Evidence and check the first delivery. Inspect its failure
+                Switch to Business. Open Evidence and check the first delivery. Inspect its failure
                 and screenshots.
               </p>
             </li>
@@ -1681,7 +1694,7 @@ function App() {
             <p>
               Scope changes are advisory. Without an AI key, a request is marked “unclear” for human
               review. To test a replacement, do it before capture: Buyer voids authorization,
-              Developer drafts a replacement, both approve again.
+              Business drafts a replacement, both approve again.
             </p>
           </div>
           <button

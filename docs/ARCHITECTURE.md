@@ -44,14 +44,14 @@ All mutation requests use `application/json` and enforce the configured Origin. 
 | `GET /api/workspace`                           | Member          | Read only own workspace; returns role/configuration flags          |
 | `POST /api/logout`                             | Member          | Revoke session                                                     |
 | `POST /api/demo/role`                          | Demo member     | Switch role within own isolated walkthrough                        |
-| `POST /api/ai/criteria`                        | Developer       | `{brief}` → validated proposed checks and provenance               |
-| `POST /api/agreements`                         | Developer       | Create fixed-price agreement                                       |
+| `POST /api/ai/criteria`                        | Business        | `{brief}` → validated proposed checks and provenance               |
+| `POST /api/agreements`                         | Business        | Create fixed-price agreement                                       |
 | `PATCH /api/agreements/:id`                    | Member          | Edit draft criteria/brief; increment version; reset approvals      |
 | `POST /api/agreements/:id/approve`             | Member          | Approve current version as authenticated role                      |
-| `POST /api/agreements/:id/verify`              | Developer       | `{url}` queues an approved delivery run                            |
+| `POST /api/agreements/:id/verify`              | Business        | `{url}` queues an approved delivery run                            |
 | `POST /api/agreements/:id/manual`              | Buyer           | `{criterionId,accepted}` records manual review                     |
 | `POST /api/agreements/:id/scope`               | Member          | `{request}` → advisory scope verdict                               |
-| `POST /api/agreements/:id/replacement`         | Developer       | `{amount,criteria}` creates replacement after void                 |
+| `POST /api/agreements/:id/replacement`         | Business        | `{amount,criteria}` creates replacement after void                 |
 | `POST /api/agreements/:id/payments/order`      | Buyer           | Create AUTHORIZE order                                             |
 | `POST /api/agreements/:id/payments/authorize`  | Buyer           | Confirm buyer-approved PayPal authorization                        |
 | `POST /api/agreements/:id/payments/capture`    | Buyer           | Explicitly capture agreed price if eligible                        |
@@ -94,17 +94,17 @@ Agreement aggregates now retain `cases` and `payment.refunds`; workspaces option
 
 A case stores the buyer’s reason, description, requested amount, fixed agreement/payment/policy/evidence snapshot, participant messages, and a review/refund state. Opening a case atomically pauses future automatic capture in that workspace, including on other agreements. It blocks capture of the affected agreement. Already-dispatched capture requests can still complete; support then follows their authoritative result.
 
-| Route                                                            | Role             | Behavior                                                                   |
-| ---------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------- |
-| `POST /api/agreements/:id/cases`                                 | Buyer            | Open a case and pause automation                                           |
-| `POST /api/agreements/:id/cases/:case/messages`                  | Member           | Add case information                                                       |
-| `POST /api/agreements/:id/cases/:case/review`                    | Seller/Developer | Record review or explained decline                                         |
-| `POST /api/agreements/:id/cases/:case/buyer-decision`            | Buyer            | Accept confirmed partial settlement or request another review              |
-| `POST /api/agreements/:id/cases/:case/refunds`                   | Seller/Developer | Reserve and request a refund; UUID request ID required                     |
-| `POST /api/agreements/:id/cases/:case/refunds/:refund/retry`     | Seller/Developer | Retry the same immutable request/key                                       |
-| `POST /api/agreements/:id/cases/:case/refunds/:refund/reconcile` | Seller/Developer | Retrieve authoritative provider refund status                              |
-| `POST /api/agreements/:id/cases/:case/reconcile-payment`         | Member           | Resolve the original capture’s uncertain status                            |
-| `POST /api/recovery/resume`                                      | Buyer            | Explicitly clear safety pause after cases and pending refunds are resolved |
+| Route                                                            | Role     | Behavior                                                                   |
+| ---------------------------------------------------------------- | -------- | -------------------------------------------------------------------------- |
+| `POST /api/agreements/:id/cases`                                 | Buyer    | Open a case and pause automation                                           |
+| `POST /api/agreements/:id/cases/:case/messages`                  | Member   | Add case information                                                       |
+| `POST /api/agreements/:id/cases/:case/review`                    | Business | Record review or explained decline                                         |
+| `POST /api/agreements/:id/cases/:case/buyer-decision`            | Buyer    | Accept confirmed partial settlement or request another review              |
+| `POST /api/agreements/:id/cases/:case/refunds`                   | Business | Reserve and request a refund; UUID request ID required                     |
+| `POST /api/agreements/:id/cases/:case/refunds/:refund/retry`     | Business | Retry the same immutable request/key                                       |
+| `POST /api/agreements/:id/cases/:case/refunds/:refund/reconcile` | Business | Retrieve authoritative provider refund status                              |
+| `POST /api/agreements/:id/cases/:case/reconcile-payment`         | Member   | Resolve the original capture’s uncertain status                            |
+| `POST /api/recovery/resume`                                      | Buyer    | Explicitly clear safety pause after cases and pending refunds are resolved |
 
 Refund operations reserve the amount and payment-operation lock in the workspace mutation before calling PayPal. Only one uncertain refund can exist for a capture. A stable `refund-<request UUID>` idempotency key identifies the immutable capture/amount/note operation. Completed and pending refunds reduce the available refundable balance. Definitive provider rejection releases the reservation; ambiguous transport, server, throttling, or in-progress responses retain it. Mismatched amounts/IDs never produce completion. Retrieving a refund or a verified matching refund webhook can confirm an already-tracked operation. A delayed pending response cannot undo confirmed completion.
 
@@ -116,16 +116,24 @@ Case and money-state mutations remain version checked and workspace scoped. Refu
 
 Optional agreement `terms`, `changes`, `effectiveAt`, and `changeOrigin` fields extend existing JSONB records. A change retains full before/after snapshots, a canonical base digest, a proposal digest covering both snapshots/effective time/business reason, deterministic field-level differences, business approval timestamp, private messages, and buyer decision. No synthetic baseline clauses are added to existing agreements.
 
-| Route                                               | Role               | Purpose                                                         |
-| --------------------------------------------------- | ------------------ | --------------------------------------------------------------- |
-| `POST /api/agreements/:id/changes`                  | Business/Developer | Publish one pending fixed-price/brief/check/clause proposal     |
-| `POST /api/agreements/:id/changes/:change/review`   | Buyer              | Request schema-validated advisory AI explanation                |
-| `POST /api/agreements/:id/changes/:change/messages` | Member             | Ask or answer a private question                                |
-| `POST /api/agreements/:id/changes/:change/decision` | Buyer              | Accept exact proposal digest or decline and keep original terms |
-| `POST /api/agreements/:id/changes/:change/withdraw` | Business/Developer | Withdraw proposal with audit history                            |
+| Route                                               | Role     | Purpose                                                         |
+| --------------------------------------------------- | -------- | --------------------------------------------------------------- |
+| `POST /api/agreements/:id/changes`                  | Business | Publish one pending fixed-price/brief/check/clause proposal     |
+| `POST /api/agreements/:id/changes/:change/review`   | Buyer    | Request schema-validated advisory AI explanation                |
+| `POST /api/agreements/:id/changes/:change/messages` | Member   | Ask or answer a private question                                |
+| `POST /api/agreements/:id/changes/:change/decision` | Buyer    | Accept exact proposal digest or decline and keep original terms |
+| `POST /api/agreements/:id/changes/:change/withdraw` | Business | Withdraw proposal with audit history                            |
 
 Publishing pauses manual and automatic capture for that agreement and prevents draft editing or scope-replacement bypass. Existing capture operations and running jobs must finish before a proposal can be published. Buyer acceptance requires explicit acknowledgement, decision note, matching snapshot/digest, and no existing usable order/authorization. The replacement retains the recorded proposed terms and business/buyer approval times, but resets payment, manual acceptance, and browser/agent runs. Authorization and capture enforce the effective time. Repeated acceptance cannot create duplicate replacements.
 
 The AI receives full old/new documents and exact differences, with business explanation labeled as an unverified claim. Findings have fixed categories and reference exact changed fields; quotes must be present verbatim in that field’s old or new value. A failed schema/citation/provider result records `unavailable` and cannot change agreement or money state. A generation token prevents overlapping reviews from replacing newer results. This validates source references, not the completeness or legal correctness of model reasoning.
 
 In-app notifications derive from persisted pending proposals and remain workspace-scoped. Active pages poll for updates and refresh on focus. No external email/SMS is sent, and there is no cross-buyer campaign or recurring subscription billing. Acceptance records support the application’s consent workflow, not legal certification.
+
+### Saved review and decision records
+
+Buyer-only `POST /api/agreements/:id/changes/:change/checklist` saves unique, known diff references against the exact proposal digest. Acceptance checks the saved checklist on the server, alongside the version, recomputed proposal hash, existing authorization state, and unresolved questions. It records immutable consent with the reviewed references, digest, note, and time. Declining remains available without acknowledging proposed new obligations. Cancelling the underlying agreement closes its pending proposals without recording new consent.
+
+Messages optionally reference a changed field and a buyer question thread. Only buyer-authenticated `POST /api/agreements/:id/changes/:change/questions/:question` can mark a question addressed or reopen it; resolution requires a note and the latest thread message ID so a stale screen cannot dismiss new information. Any new thread reply clears resolution and blocks acceptance again. Business responses cannot resolve the buyer’s concerns.
+
+Member-only `GET /api/agreements/:id/changes/:change/receipt` returns a JSON attachment with `Cache-Control: no-store`. It contains complete recorded versions, diffs, the separately labeled business claim, AI provenance, discussion, saved review, actual decision/consent, and recomputed digest consistency. It excludes payment credentials and session data. Digests check content consistency; they do not establish identity, proof of reading, or legal validity. Historical decisions without checklist records are exported without inventing consent details.

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { ChangeDiscussion } from './ChangeDiscussion';
+import { ChangeBrief, ChangedText } from './ChangeBrief';
 import { BellRing, FileDiff, ShieldCheck, Sparkles, Plus, Trash2 } from 'lucide-react';
 import type { Agreement, Role } from '../server/domain';
 import type { AgreementChange, AgreementClause, TermsSnapshot } from '../server/changes';
@@ -112,8 +114,9 @@ export function TermsReviewPanel(props: Props) {
       <div className="terms-intro">
         <ShieldCheck size={19} />
         <p>
-          The business proposes. The buyer reviews and decides. AI explains recorded text; it cannot
-          establish the business’s motive, approve terms, or guarantee a legal outcome.
+          {role === 'buyer'
+            ? 'You control changed terms. Compare the price, obligations, and data access before deciding.'
+            : 'New terms need buyer approval. Publish exact changes and answer questions before a replacement can be authorized.'}
         </p>
       </div>
       {a.changeOrigin && (
@@ -144,12 +147,12 @@ export function TermsReviewPanel(props: Props) {
             </div>
           ))}
         </details>
-      ) : (
+      ) : !pending ? (
         <p className="terms-muted">
           No additional clauses are recorded on this version. Previously approved checks and the
           brief remain available in Agreement.
         </p>
-      )}
+      ) : null}
       {pending && <Proposal key={pending.id} {...props} c={pending} />}
       {role === 'developer' &&
         !pending &&
@@ -317,6 +320,19 @@ export function TermsReviewPanel(props: Props) {
             </summary>
             <p>{c.reason}</p>
             <p>{c.decisionNote || 'Proposal withdrawn by the business.'}</p>
+            {c.consent && (
+              <p>
+                Buyer acknowledged {c.consent.reviewedRefs.length} changed fields on{' '}
+                {new Date(c.consent.at).toLocaleString()}.
+              </p>
+            )}
+            <a
+              className="terms-secondary terms-export"
+              href={'/api/agreements/' + a.id + '/changes/' + c.id + '/receipt'}
+              download
+            >
+              Download decision record · JSON
+            </a>
             <p>
               Original agreement digest: <code>{c.digest}</code>
             </p>
@@ -346,10 +362,21 @@ function Proposal({
   onReplacement,
 }: Props & { c: AgreementChange }) {
   const [ack, setAck] = useState(false),
-    [note, setNote] = useState(''),
-    [message, setMessage] = useState('');
+    [note, setNote] = useState('');
   const delta = c.after.amount - c.before.amount;
   const needsVoid = !['none', 'voided', 'expired'].includes(a.payment.status);
+  const reviewed = c.buyerReview?.proposalDigest === c.proposalDigest ? c.buyerReview.refs : [];
+  const openQuestions = c.messages.filter(
+    (m) => m.role === 'buyer' && !m.threadId && !m.resolution,
+  ).length;
+  const allReviewed = c.diffs.every((d) => reviewed.includes(d.ref));
+  const checklist = (ref: string, checked: boolean) =>
+    act('Saving change acknowledgement', () =>
+      action('/changes/' + c.id + '/checklist', {
+        digest: c.proposalDigest,
+        refs: checked ? [...reviewed, ref] : reviewed.filter((r) => r !== ref),
+      }),
+    );
   return (
     <article className="terms-proposal">
       <div className="terms-eyebrow">
@@ -391,6 +418,7 @@ function Proposal({
         Effective no earlier than <strong>{new Date(c.effectiveAt).toLocaleString()}</strong>, after
         buyer acceptance and fresh authorization. This is a one-time job, not a subscription.
       </p>
+      <ChangeBrief c={c} />
       <div className="terms-business">
         <strong>Business explanation · unverified claim</strong>
         <p>{c.reason}</p>
@@ -404,18 +432,54 @@ function Proposal({
       </p>
       {c.diffs.map((d) => (
         <section key={d.ref} id={'diff-' + c.id + '-' + d.ref} className="terms-diff">
-          <h4>{d.title}</h4>
+          <div className="terms-section-header">
+            <h4>{d.title}</h4>
+            <span className="terms-status">
+              {!d.before ? 'Added' : !d.after ? 'Removed' : 'Edited'}
+            </span>
+          </div>
           <code>{d.ref}</code>
           <div className="terms-diff-grid">
             <div>
               <small>BEFORE</small>
-              <p>{d.ref === 'amount' ? money(Number(d.before)) : d.before || 'Not present'}</p>
+              <p>
+                {d.ref === 'amount' ? (
+                  money(Number(d.before))
+                ) : d.before ? (
+                  <ChangedText value={d.before} other={d.after} side="before" />
+                ) : (
+                  'Not present'
+                )}
+              </p>
             </div>
             <div>
               <small>PROPOSED</small>
-              <p>{d.ref === 'amount' ? money(Number(d.after)) : d.after || 'Removed'}</p>
+              <p>
+                {d.ref === 'amount' ? (
+                  money(Number(d.after))
+                ) : d.after ? (
+                  <ChangedText value={d.after} other={d.before} side="after" />
+                ) : (
+                  'Removed'
+                )}
+              </p>
             </div>
           </div>
+          {role === 'buyer' ? (
+            <label className="terms-check terms-diff-ack">
+              <input
+                type="checkbox"
+                checked={reviewed.includes(d.ref)}
+                disabled={!!busy}
+                onChange={(e) => void checklist(d.ref, e.target.checked)}
+              />
+              I acknowledge this change: {d.title}
+            </label>
+          ) : (
+            <p className="terms-diff-ack">
+              {reviewed.includes(d.ref) ? 'Acknowledged by buyer' : 'Buyer acknowledgement pending'}
+            </p>
+          )}
         </section>
       ))}
       <FullDocument s={c.before} label="Original" />
@@ -463,6 +527,28 @@ function Proposal({
                 <p>
                   <strong>Question to ask:</strong> {f.question}
                 </p>
+                {role === 'buyer' && (
+                  <button
+                    className="terms-secondary"
+                    disabled={
+                      !!busy ||
+                      c.messages.some(
+                        (m) =>
+                          m.role === 'buyer' &&
+                          !m.threadId &&
+                          !m.resolution &&
+                          m.text === f.question,
+                      )
+                    }
+                    onClick={() =>
+                      act('Asking about the cited change', () =>
+                        action('/changes/' + c.id + '/messages', { text: f.question, ref: f.ref }),
+                      )
+                    }
+                  >
+                    Ask business this question
+                  </button>
+                )}
               </div>
             ))}
             {c.review.status === 'completed' && (
@@ -474,41 +560,31 @@ function Proposal({
           </>
         )}
       </section>
-      <section className="terms-questions">
-        <h4>Ask before accepting</h4>
-        {c.messages.map((m) => (
-          <div key={m.id}>
-            <strong>
-              {m.role === 'buyer' ? 'Buyer' : 'Business'} · {new Date(m.at).toLocaleString()}
-            </strong>
-            <p>{m.text}</p>
-          </div>
-        ))}
-        <label>
-          Question or response
-          <textarea
-            value={message}
-            maxLength={2000}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Ask about an obligation or request evidence for the explanation."
-          />
-        </label>
-        <button
-          className="terms-secondary"
-          disabled={!!busy || message.trim().length < 5}
-          onClick={() =>
-            act('Adding agreement question', async () => {
-              await action('/changes/' + c.id + '/messages', { text: message });
-              setMessage('');
-            })
-          }
-        >
-          Add to private discussion
-        </button>
-      </section>
+      <ChangeDiscussion c={c} role={role} busy={busy} act={act} action={action} />
       {role === 'buyer' ? (
         <div className="terms-decision">
           <h4>Your decision controls the agreement</h4>
+          <div className="terms-readiness" aria-live="polite">
+            <strong>
+              {reviewed.length} of {c.diffs.length} changes acknowledged
+            </strong>
+            <progress
+              aria-label="Changes acknowledged"
+              value={reviewed.length}
+              max={c.diffs.length}
+            />
+            <p>
+              {openQuestions
+                ? `${openQuestions} open question${openQuestions === 1 ? '' : 's'} must be addressed or explicitly dismissed before acceptance.`
+                : 'No open questions are blocking your decision.'}
+            </p>
+            {!allReviewed && (
+              <p>
+                Use the acknowledgement below each change. Your checklist is saved against this
+                exact proposal.
+              </p>
+            )}
+          </div>
           {needsVoid && (
             <div className="terms-void">
               <p>
@@ -538,13 +614,21 @@ function Proposal({
           </label>
           <label className="terms-check">
             <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />I
-            reviewed the complete changes. Accepting approves this exact new version; declining
-            keeps the original terms and permits its existing payment rules to continue.
+            understand this decision applies to the complete proposal. Accepting approves this exact
+            new version; declining keeps the original terms and permits its existing payment rules
+            to continue.
           </label>
           <div className="terms-actions">
             <button
               className="terms-primary"
-              disabled={!!busy || !ack || note.trim().length < 10 || needsVoid}
+              disabled={
+                !!busy ||
+                !ack ||
+                note.trim().length < 10 ||
+                needsVoid ||
+                !allReviewed ||
+                openQuestions > 0
+              }
               onClick={() =>
                 act('Recording acceptance of changed terms', async () => {
                   const r = await action('/changes/' + c.id + '/decision', {
@@ -588,6 +672,13 @@ function Proposal({
           Withdraw proposal · keep original terms
         </button>
       )}
+      <a
+        className="terms-secondary terms-export"
+        href={'/api/agreements/' + a.id + '/changes/' + c.id + '/receipt'}
+        download
+      >
+        Export private review record · JSON
+      </a>
       <p className="terms-muted terms-digest">
         Proposal SHA-256: <code>{c.proposalDigest}</code>
         <br />

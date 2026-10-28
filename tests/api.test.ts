@@ -529,6 +529,21 @@ test('agreement change permissions, private notifications, and proposal-bound co
   );
   assert.equal((await request(path + '/' + cid + '/review', {}, x.cookie)).res.status, 403);
   assert.equal(
+    (await request(path + '/' + cid + '/checklist', { digest: 'f'.repeat(64), refs: [] }, x.cookie))
+      .res.status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        path + '/' + cid + '/questions/' + crypto.randomUUID(),
+        { resolved: true, note: 'Seller cannot close buyer questions.' },
+        x.cookie,
+      )
+    ).res.status,
+    403,
+  );
+  assert.equal(
     (
       await request(
         path + '/' + cid + '/messages',
@@ -581,6 +596,51 @@ test('agreement change permissions, private notifications, and proposal-bound co
     ).res.status,
     400,
   );
+  assert.equal(
+    (
+      await request(
+        path + '/' + cid + '/checklist',
+        { digest: c.proposalDigest, refs: c.diffs.map((d: any) => d.ref) },
+        x.cookie,
+      )
+    ).res.status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        path + '/' + cid + '/decision',
+        {
+          decision: 'accept',
+          digest: c.proposalDigest,
+          acknowledge: true,
+          note: 'I reviewed all changes but my question remains open.',
+        },
+        x.cookie,
+      )
+    ).res.status,
+    409,
+  );
+  assert.equal(
+    (
+      await request(
+        path + '/' + cid + '/questions/' + c.messages[0].id,
+        {
+          resolved: true,
+          note: 'I no longer need this clarification to decide.',
+          lastMessageId: c.messages[0].id,
+        },
+        x.cookie,
+      )
+    ).res.status,
+    200,
+  );
+  const exported = await request(path + '/' + cid + '/receipt', undefined, x.cookie);
+  assert.equal(exported.res.status, 200);
+  assert.equal(exported.data.proposalIntegrity.matches, true);
+  assert.match(exported.res.headers.get('content-disposition')!, /attachment/);
+  assert.equal(exported.res.headers.get('cache-control'), 'no-store');
+  assert.equal((await request(path + '/' + cid + '/receipt', undefined, y.cookie)).res.status, 404);
   const accepted = await request(
     path + '/' + cid + '/decision',
     {

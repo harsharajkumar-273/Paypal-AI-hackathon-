@@ -287,7 +287,16 @@ export async function voidAuthorization(workspace: string, id: string, cancel = 
     },
     (a) => {
       a.payment.status = 'voided';
-      if (cancel) a.status = 'cancelled';
+      if (cancel) {
+        a.status = 'cancelled';
+        for (const change of a.changes || [])
+          if (change.status === 'pending') {
+            change.status = 'declined';
+            change.decidedAt = new Date().toISOString();
+            change.decisionNote =
+              'Buyer cancelled the underlying agreement. No proposed new terms were accepted.';
+          }
+      }
       for (const c of a.cases || [])
         if (isCaseOpen(c)) {
           c.status = 'cancelled';
