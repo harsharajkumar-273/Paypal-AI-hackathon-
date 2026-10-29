@@ -30,7 +30,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Open **http://localhost:5173**. Each visitor receives an isolated walkthrough workspace with role switching. Records persist in `.data/postgres` using PGlite, an embedded PostgreSQL runtime. Use one app process with embedded storage.
+Open **http://127.0.0.1:5173**. Each visitor receives an isolated walkthrough workspace with role switching. Records persist in `.data/postgres` using PGlite, an embedded PostgreSQL runtime. Use one app process with embedded storage. If another app occupies API port `3001`, choose a free `PORT` in `.env`; Vite and the browser worker use that same configured port. Restart `npm run dev` after changing it.
 
 ### Explore without credentials
 
@@ -58,7 +58,7 @@ An isolated walkthrough with an OpenAI key uses actual model calls and simulated
 
 ## Current verification
 
-The local build passes **70 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
+The local build passes **71 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
 
 **PayPal sandbox authentication and a buyer-approved $75 authorization have succeeded. Live AI-generated delivery, sandbox capture/refund, webhook delivery and hosted deployment remain pending.** The [source repository](https://github.com/harsharajkumar-273/Paypal-AI-hackathon-) is public under the MIT license. See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
 

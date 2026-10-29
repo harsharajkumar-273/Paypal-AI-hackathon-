@@ -16,7 +16,7 @@ An OpenAI key alone does not turn a walkthrough payment into a provider transact
 
 | Variable                                   | Purpose                                                                                                 |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `PORT`                                     | API port; local default `3001`                                                                          |
+| `PORT`                                     | API port; local default `3001`; change it if occupied, then restart (the Vite proxy follows it)         |
 | `APP_URL`                                  | Exact frontend origin, `http://localhost:5173` in development; final HTTPS origin when hosted           |
 | `DATABASE_URL`                             | External PostgreSQL connection string; blank for local embedded storage                                 |
 | `DATABASE_SSL`                             | Set `true` when your database connection requires SSL                                                   |
@@ -71,6 +71,14 @@ The [Render Blueprint](../render.yaml) defines Docker web/worker services and a 
 4. Share the database between web and worker. Set `RUN_WORKER=false` on web. Configure OpenAI and website allowlists consistently on both processes; PayPal credentials, webhook ID, and role invitations belong on web.
 5. Check `/api/health`, a queued browser run, authenticated screenshot retrieval, separate-role access, and worker restart recovery.
 6. Repeat the complete provider flow on the deployed build before recording it.
+
+Run the credential-free deployment check against the final origin:
+
+```sh
+npm run smoke -- https://your-proofpay-host
+```
+
+This creates a fresh private demo, checks the broken and corrected fixtures through the running worker, verifies that screenshots require authentication, and checks automatic simulated capture. It exits nonzero on a missing worker, timeout, incorrect findings, or missing receipt. It does not validate live AI, PayPal transactions, signed webhooks, or participant usability.
 
 For a production-style single-process local run:
 

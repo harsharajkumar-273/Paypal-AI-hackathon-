@@ -30,7 +30,7 @@ This prototype connects an agent-written artifact, independent acceptance eviden
 
 ## Validation status
 
-The local suite passes 70 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 browser tests. The default walkthrough uses authored fixtures and simulated payments; agent acceptance tests use a deterministic model adapter with real Chromium. Sandbox OAuth and buyer-approved authorization have succeeded; live AI delivery, capture/refund, webhook delivery and deployment remain pending. Source is published publicly with the MIT license. Update this section with observed provider-run results before submitting.
+The local suite passes 71 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 browser tests. The default walkthrough uses authored fixtures and simulated payments; agent acceptance tests use a deterministic model adapter with real Chromium. Sandbox OAuth and buyer-approved authorization have succeeded; live AI delivery, capture/refund, webhook delivery and deployment remain pending. Source is published publicly with the MIT license. Update this section with observed provider-run results before submitting.
 
 ## Limits
 

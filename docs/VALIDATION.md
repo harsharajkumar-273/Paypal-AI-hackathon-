@@ -1,11 +1,25 @@
 # Validation record
 
+## October 29 launch rehearsal
+
+- A clean export of tracked source, without `.env`, existing dependencies, or generated assets, passed `npm ci`, the production build, all 70 then-current unit/API tests, and all five browser acceptance cases. The dependency audit reported zero known vulnerabilities.
+- The subsequent unsigned-webhook regression test brings the current suite to 71 unit/API tests plus five browser cases.
+- Found an unrelated local service bound to IPv4 port 3001 while ProofPay was listening on IPv6 at that port. The development API now binds explicitly to IPv4, and the Vite proxy follows `PORT` from configuration. This makes port conflicts explicit instead of routing frontend requests to another service. Local rehearsal uses API port 3002 and `http://127.0.0.1:5173`.
+- Registered a temporary PayPal sandbox webhook through an operator-approved HTTPS tunnel. The public health check succeeded. The hardened public endpoint rejected an unsigned event with HTTP 400 before any PayPal verification request. The temporary webhook registration was deleted and the tunnel stopped after testing.
+- PayPal returned no recent app events available for replay. Signed delivery, duplicate signed replay, capture, and refund remain unverified with the real provider. A blocked capture-gate probe did not execute; no capture or refund was issued during this rehearsal.
+- Repeated the actual browser-backed guide through the interface: four passes and one failed reservation, followed by five passes and an automatic **simulated** capture. The failed reservation check took 4.2 seconds in this individual local observation.
+- Created a 60-second silent storyboard preview from captured UI stills, explicitly labeled authored deliveries and simulated payments. It is a local draft, not a recording of a live model run or the final public YouTube submission.
+- AI configuration and Render sign-in were deferred by the operator. Hosting, independent participant feedback, live AI delivery, and the final provider video remain outstanding.
+- A local Docker image build installed dependencies and browsers but lost the Docker daemon connection before completion. Docker Desktop then failed to respond; container startup, external PostgreSQL, and separate-container worker operation remain unverified.
+- During that build, a browser rerun had two failures, including an inconclusive reservation result. After the Docker build stopped, the complete browser suite passed all five cases without changing deadlines or pass criteria. This is an observed resource-contention correlation, not proof of the underlying cause.
+- The new `npm run smoke -- <origin>` command passed against the running local web service and worker in 17.1 seconds: broken run 9.4 seconds, corrected run 5.0 seconds, authenticated screenshot available, anonymous screenshot access rejected, and automatic simulated capture recorded. These are individual local measurements. The same command is ready for the hosted origin; it does not replace live-provider or human usability testing.
+
 ## Verified during implementation
 
 - TypeScript validation and Vite production build.
 - Initial prototype fresh-source check: npm ci and production build passed without existing node_modules or generated assets. The expanded agent build also passes TypeScript and Vite checks.
 - Source formatting check passed.
-- Current automated suite: 70 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change/walkthrough tests and 5 passing browser acceptance tests.
+- Current automated suite: 71 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change/walkthrough tests and 5 passing browser acceptance tests.
 - Completed the full simulated walkthrough through the interface, including both roles, both deliveries, manual acceptance, scope advice fallback, and receipt.
 - Observed local UI run durations: 7.6 seconds for the broken fixture and 3.8 seconds for the corrected fixture. These are individual development-machine observations, not benchmarks.
 - Real Chromium fixture test: broken delivery returns four automated passes and a failed booking check; corrected delivery returns five automated passes. Screenshots are captured and manual design remains a buyer decision.

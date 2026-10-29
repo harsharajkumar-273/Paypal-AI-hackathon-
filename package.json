@@ -12,7 +12,8 @@
     "test:browser": "tsx --test --test-concurrency=1 tests/*.browser.ts",
     "browser:install": "playwright install chromium",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.3.14",

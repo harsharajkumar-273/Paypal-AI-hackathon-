@@ -19,10 +19,21 @@ after(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
   await closeDb();
 });
-async function request(path: string, body?: any, cookie?: string, method?: string) {
+const signatureHeaders = {
+  'paypal-auth-algo': 'SHA256withRSA',
+  'paypal-cert-url': 'https://api.paypal.com/v1/notifications/certs/test',
+  'paypal-transmission-id': 'test-transmission',
+  'paypal-transmission-sig': 'test-signature',
+  'paypal-transmission-time': '2026-10-29T00:00:00Z',
+};
+async function request(path: string, body?: any, cookie?: string, method?: string, headers = {}) {
   const res = await fetch(base + '/api' + path, {
     method: method || (body === undefined ? 'GET' : 'POST'),
-    headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(cookie ? { Cookie: cookie } : {}),
+      ...headers,
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return { res, data: await res.json() };
@@ -216,13 +227,32 @@ test('verified duplicate webhooks reconcile once; failed signatures never enter 
       event_type: 'PAYMENT.CAPTURE.COMPLETED',
       resource: { supplementary_data: { related_ids: { order_id: 'WEBHOOK-ORDER' } } },
     };
-    assert.equal((await request('/paypal/webhook', payload)).res.status, 200);
-    assert.equal((await request('/paypal/webhook', payload)).res.status, 200);
+    assert.equal(
+      (await request('/paypal/webhook', payload, undefined, undefined, signatureHeaders)).res
+        .status,
+      200,
+    );
+    assert.equal(
+      (await request('/paypal/webhook', payload, undefined, undefined, signatureHeaders)).res
+        .status,
+      200,
+    );
     assert.equal(orderReads, 1);
     const stored = await query('SELECT processed FROM webhook_events WHERE id=$1', [payload.id]);
     assert.equal(stored.rows[0].processed, true);
     valid = false;
-    assert.equal((await request('/paypal/webhook', { ...payload, id: 'WH-BAD' })).res.status, 400);
+    assert.equal(
+      (
+        await request(
+          '/paypal/webhook',
+          { ...payload, id: 'WH-BAD' },
+          undefined,
+          undefined,
+          signatureHeaders,
+        )
+      ).res.status,
+      400,
+    );
     assert.equal(
       (await query('SELECT id FROM webhook_events WHERE id=$1', ['WH-BAD'])).rows.length,
       0,
@@ -484,8 +514,16 @@ test('verified refund webhook confirms a tracked pending refund exactly once', a
       event_type: 'PAYMENT.CAPTURE.REFUNDED',
       resource: { id: 'REFUND-WEBHOOK' },
     };
-    assert.equal((await request('/paypal/webhook', payload)).res.status, 200);
-    assert.equal((await request('/paypal/webhook', payload)).res.status, 200);
+    assert.equal(
+      (await request('/paypal/webhook', payload, undefined, undefined, signatureHeaders)).res
+        .status,
+      200,
+    );
+    assert.equal(
+      (await request('/paypal/webhook', payload, undefined, undefined, signatureHeaders)).res
+        .status,
+      200,
+    );
     assert.equal(statusReads, 1);
     const { rows } = await query('SELECT body FROM workspaces WHERE id=$1', [w.id]);
     assert.equal(rows[0].body.agreements[0].cases[0].status, 'refunded');

@@ -113,6 +113,16 @@ export const voidPayment = (a: Agreement) =>
     `${a.id}-v${a.version}-void`,
   );
 export async function verifyWebhook(headers: Record<string, any>, body: unknown) {
+  for (const name of [
+    'paypal-auth-algo',
+    'paypal-cert-url',
+    'paypal-transmission-id',
+    'paypal-transmission-sig',
+    'paypal-transmission-time',
+  ]) {
+    if (typeof headers[name] !== 'string' || !headers[name].trim())
+      throw new AppError(400, 'Missing PayPal webhook signature headers.');
+  }
   if (!process.env.PAYPAL_WEBHOOK_ID)
     throw new AppError(503, 'PayPal webhook ID is not configured.');
   const data = await paypal('/v1/notifications/verify-webhook-signature', 'POST', {
