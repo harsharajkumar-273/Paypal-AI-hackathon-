@@ -44,6 +44,7 @@ import { RecoveryPanel, RecoveryBanner, ReportProblemModal } from './Recovery';
 import { TermsReviewPanel, ChangeNotice } from './TermsReview';
 import { GuidedWalkthrough, WalkthroughInvite } from './GuidedWalkthrough';
 import './styles.css';
+import { DecisionReplay } from './DecisionReplay';
 type State = Workspace & {
   role: Role;
   aiConfigured: boolean;
@@ -58,6 +59,7 @@ type Tab =
   | 'Agreement'
   | 'Evidence'
   | 'Activity'
+  | 'Decision replay'
   | 'Scope changes'
   | 'Terms review'
   | 'Agent work'
@@ -625,6 +627,7 @@ function App() {
                           ...(a.agentTask ? ['Agent work'] : []),
                           'Evidence',
                           'Activity',
+                          'Decision replay',
                           'Scope changes',
                           'Terms review',
                           ...(a.cases?.length ||
@@ -1133,6 +1136,9 @@ function App() {
                           action={action}
                           onEvidence={setEvidence}
                         />
+                      )}
+                      {tab === 'Decision replay' && (
+                        <DecisionReplay key={a.id} a={a} call={api} onEvidence={setEvidence} />
                       )}
                       {tab === 'Activity' && (
                         <>

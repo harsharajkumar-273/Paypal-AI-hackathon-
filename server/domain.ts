@@ -111,6 +111,7 @@ export function isCaseOpen(c: RecoveryCase) {
   return ['requested', 'under_review', 'refund_pending', 'partially_refunded'].includes(c.status);
 }
 export type Payment = {
+  decisionRecord?: import('./decisions.js').DecisionRecord;
   mode: 'demo' | 'sandbox';
   status: 'none' | 'created' | 'authorized' | 'capture_pending' | 'captured' | 'voided' | 'expired';
   orderId?: string;
@@ -197,13 +198,13 @@ export function approved(a: Agreement) {
 export function latestRun(a: Agreement) {
   return a.runs.filter((r) => r.version === a.version)[0];
 }
-export function eligible(a: Agreement) {
+export function eligible(a: Agreement, now = new Date()) {
   const run = latestRun(a);
   return (
     approved(a) &&
     a.status === 'active' &&
     !a.changes?.some((c) => c.status === 'pending') &&
-    (!a.effectiveAt || Date.parse(a.effectiveAt) <= Date.now()) &&
+    (!a.effectiveAt || Date.parse(a.effectiveAt) <= now.getTime()) &&
     run?.status === 'completed' &&
     a.criteria
       .filter((c) => c.required)
@@ -214,24 +215,24 @@ export function eligible(a: Agreement) {
       )
   );
 }
-export function assertPaymentReady(a: Agreement) {
+export function assertPaymentReady(a: Agreement, now = new Date()) {
   ensure(
     !a.changes?.some((c) => c.status === 'pending'),
     'Review the proposed agreement changes before payment.',
   );
   ensure(
-    !a.effectiveAt || Date.parse(a.effectiveAt) <= Date.now(),
+    !a.effectiveAt || Date.parse(a.effectiveAt) <= now.getTime(),
     'Changed terms are not effective yet.',
   );
   ensure(!a.cases?.some(isCaseOpen), 'Resolve this payment’s open support case before capture.');
-  ensure(eligible(a), 'Complete the agreed checks and accept manual criteria before payment.');
+  ensure(eligible(a, now), 'Complete the agreed checks and accept manual criteria before payment.');
   ensure(
     a.payment.status === 'authorized' || a.payment.status === 'capture_pending',
     'A valid buyer authorization is required.',
   );
   ensure(a.payment.version === a.version, 'Authorization belongs to an older agreement.');
   ensure(
-    a.payment.expiresAt && Date.parse(a.payment.expiresAt) > Date.now(),
+    a.payment.expiresAt && Date.parse(a.payment.expiresAt) > now.getTime(),
     'Authorization expired. Ask the buyer to authorize again.',
   );
 }

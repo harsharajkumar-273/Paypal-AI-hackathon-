@@ -32,6 +32,7 @@ import {
 import { propose, compareScope } from './ai.js';
 import { paypalConfigured, verifyWebhook } from './paypal.js';
 import { safeUrl } from './verifier.js';
+import { checksum, replay, simulateDecision } from './decisions.js';
 import { cafeHtml } from './fixtures.js';
 import {
   proposeChange,
@@ -274,6 +275,126 @@ export function createApp() {
         role: req.auth.role,
         aiConfigured: Boolean(process.env.OPENAI_API_KEY),
         paypalConfigured: paypalConfigured(),
+      });
+    }),
+  );
+  app.get(
+    '/api/agreements/:id/decision-replay',
+    handle(async (req: Authed, res) => {
+      const w = await getWorkspace(req.auth.workspace_id);
+      res.json(replay(w, find(w, req.params.id as string)));
+    }),
+  );
+  app.post(
+    '/api/agreements/:id/decision-simulation',
+    handle(async (req: Authed, res) => {
+      const w = await getWorkspace(req.auth.workspace_id);
+      res.json(simulateDecision(w, find(w, req.params.id as string), req.body));
+    }),
+  );
+  app.get(
+    '/api/agreements/:id/proof-bundle',
+    handle(async (req: Authed, res) => {
+      const w = await getWorkspace(req.auth.workspace_id),
+        a = find(w, req.params.id as string);
+      const evidence = a.runs.flatMap((run) =>
+        run.results
+          .filter((r) => r.screenshot)
+          .map((r) => ({
+            runId: run.id,
+            version: run.version,
+            criterionId: r.criterionId,
+            contentType: 'image/jpeg',
+            sha256: createHash('sha256').update(Buffer.from(r.screenshot!, 'base64')).digest('hex'),
+            base64: r.screenshot!,
+          })),
+      );
+      const agentEvidence = (a.agentRuns || []).flatMap((agent) =>
+        agent.attempts.flatMap((attempt) =>
+          attempt.results
+            .filter((r) => r.screenshot)
+            .map((r) => ({
+              agentRunId: agent.id,
+              artifactId: attempt.artifactId,
+              criterionId: r.criterionId,
+              contentType: 'image/jpeg',
+              sha256: createHash('sha256')
+                .update(Buffer.from(r.screenshot!, 'base64'))
+                .digest('hex'),
+              base64: r.screenshot!,
+            })),
+        ),
+      );
+      const artifacts = [];
+      for (const id of new Set(
+        [
+          ...a.runs.map((r) => r.artifactId),
+          ...(a.agentRuns || []).flatMap((agent) =>
+            agent.attempts.map((attempt) => attempt.artifactId),
+          ),
+        ].filter((id): id is string => Boolean(id)),
+      )) {
+        const { rows } = await query(
+          'SELECT id,html,sha256 FROM agent_artifacts WHERE id=$1 AND workspace_id=$2 AND agreement_id=$3',
+          [id, w.id, a.id],
+        );
+        for (const row of rows)
+          artifacts.push({
+            ...row,
+            hashMatches:
+              row.sha256 ===
+              createHash('sha256')
+                .update(row.html || '')
+                .digest('hex'),
+          });
+      }
+      const payload = {
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString(),
+        application: 'ProofPay',
+        paymentMode: a.payment.mode,
+        disclosure:
+          a.payment.mode === 'demo'
+            ? 'Authored walkthrough or configured agent; simulated payments. See agent run provenance.'
+            : 'PayPal sandbox only; no production money movement.',
+        agreement: {
+          id: a.id,
+          title: a.title,
+          brief: a.brief,
+          amount: a.amount,
+          currency: 'USD',
+          version: a.version,
+          terms: a.terms || [],
+          criteria: a.criteria,
+          approvals: a.approvals,
+          manualAccepted: a.manualAccepted,
+          dueAt: a.dueAt,
+          deliveryUrl: a.deliveryUrl,
+        },
+        decision: replay(w, a),
+        verification: a.runs.map((run) => ({
+          ...run,
+          results: run.results.map(({ screenshot, ...r }) => ({
+            ...r,
+            evidenceIncluded: Boolean(screenshot),
+          })),
+        })),
+        ruleHistory: w.ruleHistory || [],
+        agentEvidence,
+        evidence,
+        artifacts,
+      };
+      res.setHeader('Cache-Control', 'no-store');
+      res.attachment(`proofpay-${a.id}-proof.json`);
+      res.json({
+        payload,
+        integrity: {
+          algorithm: 'SHA-256',
+          sha256: checksum(payload),
+          canonicalization:
+            'Recursively sorted object keys, original array order, undefined object properties omitted.',
+          meaning: 'Content checksum, not a digital signature or independent certification.',
+        },
       });
     }),
   );

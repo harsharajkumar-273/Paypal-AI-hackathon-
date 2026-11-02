@@ -13,6 +13,7 @@ import {
 } from './domain.js';
 import { evaluateAutomaticPayment, rulesFor, utcMonth } from './automation.js';
 import { createOrder, authorizeOrder, capturePayment, voidPayment, paypal } from './paypal.js';
+import { decisionRecord } from './decisions.js';
 export function find(w: Workspace, id: string): Agreement {
   const a = w.agreements.find((a) => a.id === id);
   if (!a) throw new AppError(404, 'Agreement not found.');
@@ -227,12 +228,14 @@ export async function capture(
     id,
     'capture',
     (a, w) => {
-      assertPaymentReady(a);
+      const evaluatedAt = new Date();
+      assertPaymentReady(a, evaluatedAt);
       if (method === 'automatic') {
-        const decision = evaluateAutomaticPayment(w, a);
+        const decision = evaluateAutomaticPayment(w, a, evaluatedAt);
         ensure(decision.outcome === 'ready', decision.reasons.join(' '));
       }
       if (a.payment.status !== 'capture_pending') {
+        a.payment.decisionRecord = decisionRecord(w, a, method, evaluatedAt);
         a.payment.captureMethod = method;
         a.payment.ruleVersion = method === 'automatic' ? rulesFor(w).version : undefined;
         a.payment.budgetMonth = utcMonth();

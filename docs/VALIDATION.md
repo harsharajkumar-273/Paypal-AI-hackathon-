@@ -19,7 +19,7 @@
 - TypeScript validation and Vite production build.
 - Initial prototype fresh-source check: npm ci and production build passed without existing node_modules or generated assets. The expanded agent build also passes TypeScript and Vite checks.
 - Source formatting check passed.
-- Current automated suite: 71 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change/walkthrough tests and 5 passing browser acceptance tests.
+- Current automated suite: 77 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change/walkthrough tests and 5 passing browser acceptance tests.
 - Completed the full simulated walkthrough through the interface, including both roles, both deliveries, manual acceptance, scope advice fallback, and receipt.
 - Observed local UI run durations: 7.6 seconds for the broken fixture and 3.8 seconds for the corrected fixture. These are individual development-machine observations, not benchmarks.
 - Real Chromium fixture test: broken delivery returns four automated passes and a failed booking check; corrected delivery returns five automated passes. Screenshots are captured and manual design remains a buyer decision.
@@ -105,3 +105,12 @@ PayPal sandbox OAuth and buyer-approved authorization are confirmed in the provi
 - Completed the same flow through the interface, opened the actual failed-check screenshot, resumed at the recorded receipt, and opened the separate follow-up job’s $2-plus-data-sharing proposal. See the [fresh start](walkthrough-start-preview.png) and [recorded receipt](walkthrough-preview.png).
 - The guided fixture worker uses a factual template summary, even when a model key is configured. Its browser acceptance test rejects any attempted model call and confirms none occur. The guided core does not wait for an AI summary or require model credentials.
 - These are authored fixtures and simulated payments, not an actual AI-generated repair or an additional PayPal sandbox transaction.
+
+## Payment Decision Replay validation
+
+- Current automated suite: 77 unit/API cases and five browser acceptance cases. Snapshot and counterfactual tests cover preserved capture-time inputs, frozen-clock evaluation, changed rules, per-payment boundaries, pending monthly reservations, manual versus automatic eligibility, all four scenario controls, rejected unknown overrides, and legacy receipts without historical snapshots.
+- API checks reject anonymous and cross-workspace replay, export, and simulation. Private exports are non-cacheable. The pure scenario tests compare the full workspace before and after to confirm no agreement, evidence, payment, or rules were mutated.
+- The browser acceptance walkthrough verifies a new automatic simulated capture records a ready decision, a hypothetical failed booking blocks eligibility, the actual capture ID stays unchanged, and the downloaded proof checksum matches its JSON payload with ten actual screenshots across both fixture runs.
+- Tests use isolated databases and simulated payments or mocked provider responses; this feature does not create an additional live AI or PayPal integration claim.
+
+- Interface rehearsal: completed a fresh guided demo, opened its capture-time replay from the receipt, inspected the original ready decision, and exercised all four hypothetical conditions. The original `DEMO-` capture remained confirmed. Downloaded the proof bundle through the interface and independently verified the canonical payload checksum and all ten included JPEG checksums. See [the policy-lab preview](payment-replay-preview.png).

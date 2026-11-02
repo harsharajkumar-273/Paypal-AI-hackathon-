@@ -91,6 +91,22 @@ test(
       assert.equal(a.payment.status, 'captured');
       assert.equal(a.payment.captureMethod, 'automatic');
       assert.match(a.payment.captureId, /^DEMO-/);
+      const recorded = await request(path + '/decision-replay');
+      assert.equal(recorded.source, 'recorded-capture-inputs');
+      assert.equal(recorded.record.automatic.outcome, 'ready');
+      const simulation = await request(path + '/decision-simulation', {
+        failedCriterion: 'booking',
+      });
+      assert.equal(simulation.result.outcome, 'blocked');
+      assert.equal(
+        (await request('/workspace')).agreements[0].payment.captureId,
+        a.payment.captureId,
+      );
+      const bundle = await request(path + '/proof-bundle');
+      const { checksum } = await import('../server/decisions.js');
+      assert.equal(bundle.integrity.sha256, checksum(bundle.payload));
+      assert.equal(bundle.payload.evidence.length, 10);
+      assert.ok(bundle.payload.evidence.every((e: any) => e.base64 && e.sha256));
       assert.equal(walkthroughState(a, true, true).step, 4);
       const extra = await request('/demo/walkthrough/terms', {}),
         again = await request('/demo/walkthrough/terms', {});

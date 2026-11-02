@@ -19,6 +19,14 @@ ProofPay connects the agreed checks, generated artifact, browser evidence, spend
 
 The agent can change the booking handler. It cannot change the agreed checks, price, spending rules, or payment operations.
 
+## Payment Decision Replay
+
+Open **Decision replay** on a project, or choose **Why did this payment happen?** after the guided demo. Follow the agreement, delivery attempts, independent findings, payment policy, and receipt.
+
+New captures save their original decision inputs, policy version, UTC budget usage, and decision time. The isolated policy lab can lower the spending limit, fail a required check, add an unapproved terms change, or simulate a buyer complaint. It runs the existing automatic-payment evaluator on copies and cannot capture funds or alter recorded evidence. Explicit buyer capture is displayed separately from automatic-policy eligibility.
+
+**Download proof bundle** exports a private JSON attachment with the agreement, recorded decision, verification findings, included JPEG evidence, agent artifacts when present, event history, transaction references, and a SHA-256 content checksum. The checksum is not a digital signature. Older payments without a capture-time record are labeled honestly and do not receive fabricated historical inputs.
+
 ## Run locally
 
 Requires Node.js 22.18+ and npm.
@@ -58,7 +66,7 @@ An isolated walkthrough with an OpenAI key uses actual model calls and simulated
 
 ## Current verification
 
-The local build passes **71 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
+The local build passes **77 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
 
 **PayPal sandbox authentication and a buyer-approved $75 authorization have succeeded. Live AI-generated delivery, sandbox capture/refund, webhook delivery and hosted deployment remain pending.** The [source repository](https://github.com/harsharajkumar-273/Paypal-AI-hackathon-) is public under the MIT license. See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
 

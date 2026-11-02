@@ -56,6 +56,21 @@ test('visitors are isolated and cannot operate on each other’s agreements', as
     (await request(`/agreements/${y.id}/verify`, { url: 'fixture:fixed' }, x.cookie)).res.status,
     404,
   );
+  for (const route of ['decision-replay', 'proof-bundle']) {
+    assert.equal(
+      (await request(`/agreements/${y.id}/${route}`, undefined, x.cookie)).res.status,
+      404,
+    );
+    assert.equal((await request(`/agreements/${x.id}/${route}`)).res.status, 401);
+    const own = await request(`/agreements/${x.id}/${route}`, undefined, x.cookie);
+    assert.equal(own.res.status, 200);
+    assert.equal(own.res.headers.get('cache-control'), 'no-store');
+  }
+  assert.equal(
+    (await request(`/agreements/${y.id}/decision-simulation`, {}, x.cookie)).res.status,
+    404,
+  );
+  assert.equal((await request(`/agreements/${x.id}/decision-simulation`, {})).res.status, 401);
 });
 test('buyer permissions, approval reset, verification prerequisites, capture guards', async () => {
   const { cookie, w, id } = await visitor(),

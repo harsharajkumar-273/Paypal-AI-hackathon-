@@ -28,7 +28,8 @@ type Props = {
   onClose: () => void;
   onExplore: (
     id: string,
-    tab: 'Evidence' | 'Terms review' | 'Resolution' | 'Agent work' | 'Agreement',
+    tab:
+      'Evidence' | 'Terms review' | 'Resolution' | 'Agent work' | 'Agreement' | 'Decision replay',
   ) => void;
   onRestart: () => void;
   onEvidence: (r: Result) => void;
@@ -670,6 +671,14 @@ export function GuidedWalkthrough({
                 </button>
                 <div className="walkthrough-next-chapters">
                   <span className="walkthrough-kicker">NEXT CHAPTERS · OPTIONAL</span>
+                  <button onClick={() => onExplore(a.id, 'Decision replay')}>
+                    <ShieldCheck size={20} />
+                    <div>
+                      <strong>Why did this payment happen?</strong>
+                      <span>Replay the decision and test what would block it.</span>
+                    </div>
+                    <ChevronRight size={17} />
+                  </button>
                   <button
                     disabled={!!busy}
                     onClick={() => act('Preparing the agreement-change chapter', termsChapter)}

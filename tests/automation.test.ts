@@ -80,6 +80,9 @@ test('required browser evidence and authorization allow automatic capture withou
   assert.equal(paid.payment.captureMethod, 'automatic');
   assert.equal(paid.payment.ruleVersion, 1);
   assert.ok(paid.payment.capturedAt);
+  assert.equal(paid.payment.decisionRecord?.automatic.outcome, 'ready');
+  assert.equal(paid.payment.decisionRecord?.method, 'automatic');
+  assert.equal(paid.payment.decisionRecord?.agreement.payment.status, 'authorized');
   assert.ok(paid.events.some((e) => e.title === 'Automatic payment requested'));
   const first = paid.payment.captureId;
   await settleAutomaticPayments(w.id);
