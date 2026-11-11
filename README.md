@@ -19,6 +19,18 @@ ProofPay connects the agreed checks, generated artifact, browser evidence, spend
 
 The agent can change the booking handler. It cannot change the agreed checks, price, spending rules, or payment operations.
 
+The café repair is deliberately small so every step can be inspected. The same pattern applies to any agent task whose result can be checked by a machine: the buyer fixes the checks and the budget up front, and money moves only on evidence the agent did not produce itself.
+
+## What is real and what is simulated
+
+| Route                                             | Agent repair                  | Browser checks | Payment                        |
+| ------------------------------------------------- | ----------------------------- | -------------- | ------------------------------ |
+| Guided demo, no keys (start here)                 | Authored broken/fixed fixture | Real Chromium  | Simulated, `DEMO-` identifiers |
+| Isolated walkthrough with an OpenAI key           | Written by the model          | Real Chromium  | Simulated, `DEMO-` identifiers |
+| Merchant workspace with OpenAI and PayPal sandbox | Written by the model          | Real Chromium  | PayPal sandbox Orders/Payments |
+
+The interface labels each route the same way. See [current verification](#current-verification) for which routes have been run against the real providers.
+
 ## Payment Decision Replay
 
 Open **Decision replay** on a project, or choose **Why did this payment happen?** after the guided demo. Follow the agreement, delivery attempts, independent findings, payment policy, and receipt.
@@ -60,7 +72,7 @@ The original manual workspace and objective-only update remain available for fre
 
 ### Run the model-backed agent
 
-Set `OPENAI_API_KEY` in `.env` and restart. As Buyer, select **Commission agent task**, approve the agreement with both roles, authorize, and enable standing rules. As Business, open **Agent work** and start the repair.
+Set `OPENAI_API_KEY` in `.env` and restart. `npm run preflight` makes one small request to each configured provider and reports which route this machine is ready for; it prints no secrets and moves no money. As Buyer, select **Commission agent task**, approve the agreement with both roles, authorize, and enable standing rules. As Business, open **Agent work** and start the repair.
 
 An isolated walkthrough with an OpenAI key uses actual model calls and simulated payment. To use actual **PayPal sandbox transactions**, enter the shared merchant workspace using separate buyer/developer invitations. Follow the [configuration and provider-run guide](docs/SETUP.md).
 
