@@ -32,6 +32,10 @@ An OpenAI key alone does not turn a walkthrough payment into a provider transact
 
 Generate each invitation separately with `openssl rand -hex 32`. Share it privately with its intended participant. Enter it in **Connections & access**. Real sessions have fixed roles; use separate browser profiles for buyer and seller. The shared merchant workspace begins empty.
 
+## Check readiness
+
+After filling `.env`, run `npm run preflight`. It checks Node.js and Chromium, makes one small structured-output request to OpenAI, signs in to the PayPal sandbox app, compares the registered webhook URL with `APP_URL`, and checks the role invitations. It reports which route in the table above this machine is ready for. It prints no secrets and creates no order, capture, refund, or webhook.
+
 ## OpenAI run
 
 1. Set the API key and selected model on the process executing the agent. With a separate worker, configure the key/model on both web and worker.

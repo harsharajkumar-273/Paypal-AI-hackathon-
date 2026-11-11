@@ -13,7 +13,8 @@
     "browser:install": "playwright install chromium",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "preflight": "node scripts/preflight.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.3.14",
