@@ -447,6 +447,7 @@ function App() {
             <WalkthroughInvite
               resume={Boolean(state.walkthrough)}
               busy={busy}
+              ai={state.aiConfigured}
               onStart={() => launchGuide(true)}
               onResume={() => launchGuide()}
             />

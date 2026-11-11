@@ -163,6 +163,7 @@ export type Workspace = {
     agreementId: string;
     startedAt: string;
     failureReviewedAt?: string;
+    agentChosenAt?: string;
     termsAgreementId?: string;
   };
   id: string;

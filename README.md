@@ -26,7 +26,7 @@ The café repair is deliberately small so every step can be inspected. The same 
 | Route                                             | Agent repair                  | Browser checks | Payment                        |
 | ------------------------------------------------- | ----------------------------- | -------------- | ------------------------------ |
 | Guided demo, no keys (start here)                 | Authored broken/fixed fixture | Real Chromium  | Simulated, `DEMO-` identifiers |
-| Isolated walkthrough with an OpenAI key           | Written by the model          | Real Chromium  | Simulated, `DEMO-` identifiers |
+| Guided demo or agent task with an OpenAI key      | Written by the model          | Real Chromium  | Simulated, `DEMO-` identifiers |
 | Merchant workspace with OpenAI and PayPal sandbox | Written by the model          | Real Chromium  | PayPal sandbox Orders/Payments |
 
 The interface labels each route the same way. See [current verification](#current-verification) for which routes have been run against the real providers.
@@ -72,13 +72,15 @@ The original manual workspace and objective-only update remain available for fre
 
 ### Run the model-backed agent
 
-Set `OPENAI_API_KEY` in `.env` and restart. `npm run preflight` makes one small request to each configured provider and reports which route this machine is ready for; it prints no secrets and moves no money. As Buyer, select **Commission agent task**, approve the agreement with both roles, authorize, and enable standing rules. As Business, open **Agent work** and start the repair.
+Set `OPENAI_API_KEY` in `.env` and restart. The guided demo's fourth chapter then offers **Let the AI agent write the fix**: the agent requests a patch from the model, Chromium tests each patch against the same five checks, and the receipt lists every patch with its code and digest. The authored correction stays available as a fallback, and the first broken page is still an authored fixture.
+
+For the full workspace flow: `npm run preflight` makes one small request to each configured provider and reports which route this machine is ready for; it prints no secrets and moves no money. As Buyer, select **Commission agent task**, approve the agreement with both roles, authorize, and enable standing rules. As Business, open **Agent work** and start the repair.
 
 An isolated walkthrough with an OpenAI key uses actual model calls and simulated payment. To use actual **PayPal sandbox transactions**, enter the shared merchant workspace using separate buyer/developer invitations. Follow the [configuration and provider-run guide](docs/SETUP.md).
 
 ## Current verification
 
-The local build passes **77 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
+The local build passes **77 domain/API/payment/recovery/agreement-change/walkthrough tests and 7 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter or a mocked model response, and simulated payment.
 
 **PayPal sandbox authentication and a buyer-approved $75 authorization have succeeded. Live AI-generated delivery, sandbox capture/refund, webhook delivery and hosted deployment remain pending.** The [source repository](https://github.com/harsharajkumar-273/Paypal-AI-hackathon-) is public under the MIT license. See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
 
