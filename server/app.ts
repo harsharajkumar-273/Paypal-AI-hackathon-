@@ -654,6 +654,36 @@ export function createApp() {
     }),
   );
   app.post(
+    '/api/demo/walkthrough/agent',
+    handle(async (req: Authed, res) => {
+      ensure(req.auth.demo, 'Only isolated demo sessions can use the walkthrough.', 403);
+      ensure(
+        process.env.OPENAI_API_KEY,
+        'Configure OPENAI_API_KEY to let a model write the repair. No AI delivery is simulated.',
+        503,
+      );
+      await mutate(req.auth.workspace_id, (w) => {
+        ensure(w.walkthrough, 'Start the guided example first.');
+        const a = find(w, w.walkthrough.agreementId);
+        ensure(
+          w.walkthrough.failureReviewedAt,
+          'Review the first delivery’s failed check before commissioning a repair.',
+        );
+        ensure(a.payment.status === 'authorized', 'This example no longer has an open payment.');
+        if (a.agentTask) return;
+        a.agentTask = true;
+        a.agentRuns ||= [];
+        w.walkthrough.agentChosenAt = new Date().toISOString();
+        event(
+          a,
+          'Model-written repair chosen',
+          'The guided example now uses the repair agent. Checks, price, authorization, and payment rules are unchanged.',
+        );
+      });
+      res.json({ ok: true });
+    }),
+  );
+  app.post(
     '/api/demo/walkthrough/terms',
     handle(async (req: Authed, res) => {
       ensure(req.auth.demo, 'Only isolated demo sessions can use the walkthrough.', 403);
@@ -916,8 +946,9 @@ export function createApp() {
       const { url } = z.object({ url: z.string().max(2048) }).parse(req.body);
       const w = await getWorkspace(req.auth.workspace_id),
         a = find(w, req.params.id as string);
+      // The guided example may fall back to its authored correction after choosing the agent.
       ensure(
-        !a.agentTask,
+        !a.agentTask || (w.walkthrough?.agreementId === a.id && url === 'fixture:fixed'),
         'Agent tasks submit their own independently verified artifact. Use the Agent work tab.',
         400,
       );

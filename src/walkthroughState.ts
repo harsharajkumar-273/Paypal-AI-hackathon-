@@ -13,7 +13,11 @@ export function walkthroughState(a: Agreement, rulesEnabled: boolean, failureRev
       r.status === 'completed' &&
       r.results.some((result) => result.status === 'fail'),
   );
-  const correctedRun = a.runs.find((r) => r.url === 'fixture:fixed');
+  // A correction is the authored fixture or an artifact the repair agent submitted.
+  const correctedRun = a.runs.find(
+    (r) => r.url === 'fixture:fixed' || r.url.startsWith('fixture:agent:'),
+  );
+  const agent = a.agentRuns?.[0];
   const currentRun = a.runs[0];
   const running = currentRun && ['queued', 'running'].includes(currentRun.status);
   const required = a.criteria.filter((c) => c.required);
@@ -35,5 +39,5 @@ export function walkthroughState(a: Agreement, rulesEnabled: boolean, failureRev
           : correctedRun || (failedRun && failureReviewed)
             ? 3
             : 2;
-  return { step, failedRun, correctedRun, currentRun, running, passed };
+  return { step, failedRun, correctedRun, currentRun, running, passed, agent };
 }

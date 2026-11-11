@@ -12,4 +12,6 @@ Pitch: **ProofPay pays for proven agent output, within buyer-approved boundaries
 
 Keep the freelancer workflow as a second use case, not a competing opening story. Describe the operator as the seller receiving sandbox payment. Do not claim the model itself owns a PayPal account, that funds are escrowed, that this concept is first-of-its-kind, or that the prototype predicts a prize ranking.
 
+With an OpenAI key, the guided demo runs this story in one flow: chapter four offers **Let the AI agent write the fix**, and the receipt lists each patch. Its payment is simulated, so record the PayPal sandbox authorization and capture from the merchant workspace.
+
 A complete live recording still needs configured OpenAI and PayPal sandbox accounts. The default walkthrough demonstrates mechanics with authored fixtures and simulated payments.
