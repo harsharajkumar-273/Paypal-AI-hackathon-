@@ -71,7 +71,7 @@ The [Render Blueprint](../render.yaml) defines Docker web/worker services and a 
 
 1. Publish the source repository with its root `LICENSE`. Confirm it is publicly readable while signed out and that GitHub recognizes the MIT license.
 2. Create a Blueprint deployment from the repository and configure prompted values.
-3. Set web `APP_URL` and worker `FIXTURE_ORIGIN` to the same public HTTPS web origin. Do not use a private service hostname for browser fixtures.
+3. Set worker `FIXTURE_ORIGIN` to the web service's public HTTPS origin. Web `APP_URL` may be left blank on Render, where the app falls back to the `RENDER_EXTERNAL_URL` Render provides; set it explicitly for a custom domain. Do not use a private service hostname for browser fixtures.
 4. Share the database between web and worker. Set `RUN_WORKER=false` on web. Configure OpenAI and website allowlists consistently on both processes; PayPal credentials, webhook ID, and role invitations belong on web.
 5. Check `/api/health`, a queued browser run, authenticated screenshot retrieval, separate-role access, and worker restart recovery.
 6. Repeat the complete provider flow on the deployed build before recording it.

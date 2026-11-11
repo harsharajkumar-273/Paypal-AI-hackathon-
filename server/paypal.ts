@@ -1,4 +1,5 @@
 import { AppError, type Agreement } from './domain.js';
+import { appUrl } from './config.js';
 export class PayPalError extends AppError {
   constructor(
     public providerStatus: number,
@@ -83,8 +84,8 @@ export async function createOrder(a: Agreement) {
           experience_context: {
             brand_name: 'ProofPay',
             user_action: 'PAY_NOW',
-            return_url: `${process.env.APP_URL || 'http://localhost:5173'}/?paypal=approved`,
-            cancel_url: `${process.env.APP_URL || 'http://localhost:5173'}/?paypal=cancelled`,
+            return_url: `${appUrl()}/?paypal=approved`,
+            cancel_url: `${appUrl()}/?paypal=cancelled`,
           },
         },
       },

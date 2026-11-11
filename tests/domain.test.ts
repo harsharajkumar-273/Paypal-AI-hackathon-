@@ -113,3 +113,22 @@ test('unapproved origins, credentials and HTTP are rejected before lookup', asyn
   for (const url of ['http://example.com', 'https://user:pass@example.com', 'https://evil.example'])
     await assert.rejects(() => safeUrl(url, ['https://example.com']));
 });
+
+test('public origin prefers APP_URL, then the Render-provided URL, then local development', async () => {
+  const { appUrl } = await import('../server/config.js');
+  const saved = { app: process.env.APP_URL, render: process.env.RENDER_EXTERNAL_URL };
+  try {
+    delete process.env.APP_URL;
+    delete process.env.RENDER_EXTERNAL_URL;
+    assert.equal(appUrl(), 'http://localhost:5173');
+    process.env.RENDER_EXTERNAL_URL = 'https://proofpay.onrender.com';
+    assert.equal(appUrl(), 'https://proofpay.onrender.com');
+    process.env.APP_URL = 'https://demo.example.com/';
+    assert.equal(appUrl(), 'https://demo.example.com');
+  } finally {
+    if (saved.app === undefined) delete process.env.APP_URL;
+    else process.env.APP_URL = saved.app;
+    if (saved.render === undefined) delete process.env.RENDER_EXTERNAL_URL;
+    else process.env.RENDER_EXTERNAL_URL = saved.render;
+  }
+});

@@ -61,7 +61,7 @@ The café repair is small on purpose. The same pattern fits any agent task whose
 - **PayPal:** Orders and Payments sandbox APIs for authorization, conditional capture, void, full and partial refund, and reconciliation, with request IDs so a retried call cannot pay twice. Webhooks are signature-verified before processing.
 - **AI:** OpenAI structured outputs write the booking-handler patch from the defective source and the browser observations. The model's output is stored and tested separately; it never decides payment eligibility.
 - **Verification:** a Playwright worker runs real Chromium against the stored artifact under a sandboxed origin and keeps screenshots as evidence.
-- **App:** React and Vite front end, Express API, PostgreSQL (embedded PGlite locally), TypeScript throughout. 77 unit and API tests and 7 real-browser acceptance tests run in CI.
+- **App:** React and Vite front end, Express API, PostgreSQL (embedded PGlite locally), TypeScript throughout. 78 unit and API tests and 7 real-browser acceptance tests run in CI.
 
 ### Challenges
 
