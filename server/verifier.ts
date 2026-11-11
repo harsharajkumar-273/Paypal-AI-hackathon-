@@ -105,6 +105,11 @@ export async function verify(
   page.setDefaultTimeout(6000);
   page.setDefaultNavigationTimeout(12000);
   page.on('dialog', (d) => void d.dismiss());
+  // Script errors explain a failed form check to the buyer and to a revising agent.
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => {
+    if (pageErrors.length < 3) pageErrors.push(error.message.split('\n')[0].slice(0, 200));
+  });
   context.on('page', (p) => {
     if (p !== page) void p.close();
   });
@@ -129,6 +134,7 @@ export async function verify(
         await page.setViewportSize(
           c.type === 'mobile' ? { width: 390, height: 844 } : { width: 1280, height: 900 },
         );
+        pageErrors.length = 0;
         const response = await page.goto(url, { waitUntil: 'networkidle' });
         if (!response?.ok())
           throw new Error(`Website returned ${response?.status() || 'no response'}.`);
@@ -205,7 +211,18 @@ export async function verify(
           observed =
             status === 'pass'
               ? `Approved test endpoint returned success and displayed “${c.expected}”.`
-              : 'Reservation was not confirmed by both the approved endpoint and the page. Check the form submission handler.';
+              : [
+                  'Reservation was not confirmed by both the approved endpoint and the page.',
+                  successResponse
+                    ? 'The approved endpoint returned success.'
+                    : 'No successful POST reached the approved endpoint.',
+                  successText
+                    ? `“${c.expected}” was displayed.`
+                    : `No visible element showed exactly “${c.expected}”.`,
+                  pageErrors.length ? `Page script error: ${pageErrors.join(' | ')}` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ');
         }
         if (c.type === 'mobile') {
           const size = await page.evaluate(() => ({

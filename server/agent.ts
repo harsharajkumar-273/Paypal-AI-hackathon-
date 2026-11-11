@@ -34,6 +34,7 @@ export async function proposeRepair(input: {
   brief: string;
   criteria: Criterion[];
   handler: string;
+  page?: string;
   results: Omit<Result, 'screenshot'>[];
   attempt: number;
   remainingMs?: number;
@@ -45,7 +46,7 @@ export async function proposeRepair(input: {
   );
   return structured(
     'booking_handler_patch',
-    `You are the bounded ProofPay website repair agent. Repair only the JavaScript body of an existing async submit handler. e.preventDefault() is already executed before your code. You may read form fields name and email and update #feedback. The only permitted endpoint is /fixtures/reserve, a test-only POST endpoint; it returns JSON {ok:true,message:"Your table is reserved."}. Use fetch with credentials:'omit' and URLSearchParams body (no custom headers), then show the exact success text only after a successful endpoint response. Handle network failures honestly. Return actual JavaScript, not a plan or Markdown. Do not modify other page content, tests, criteria, price, payment, or browser navigation. The independent verifier requires both an HTTP-success POST and visible success text. No server execution is available.`,
+    `You are the bounded ProofPay website repair agent. Repair only the JavaScript body of an existing async submit handler. e.preventDefault() is already executed before your code. Your code replaces the current handler text inside the page's existing submit listener, shown in the page field; the submit event e is the only variable in scope, so do not add another listener or wrap the code in a function. You may read form fields name and email and update #feedback. The only permitted endpoint is /fixtures/reserve, a test-only POST endpoint; it returns JSON {ok:true,message:"Your table is reserved."}. Use fetch with credentials:'omit' and URLSearchParams body (no custom headers), then show the exact success text only after a successful endpoint response. Handle network failures honestly. Return actual JavaScript, not a plan or Markdown. Do not modify other page content, tests, criteria, price, payment, or browser navigation. The independent verifier requires both an HTTP-success POST and visible success text. No server execution is available.`,
     input,
     patchSchema,
     {
@@ -56,6 +57,11 @@ export async function proposeRepair(input: {
     },
     Math.max(1, Math.min(45000, input.remainingMs || 45000)),
   );
+}
+// A model sometimes wraps code in a Markdown fence, which would be a syntax error in the page.
+export function stripCodeFence(code: string) {
+  const fenced = code.trim().match(/^```[a-zA-Z]*\s*\n([\s\S]*?)\n?```$/);
+  return fenced ? fenced[1] : code;
 }
 export function artifactHeaders(origin: string) {
   return {
@@ -137,6 +143,8 @@ export async function runRepairAgent(
       `Read the authored café page and its defective booking submit handler (${cafeHtml(false).length} source characters).`,
     );
     let handler = brokenBookingHandler;
+    // The model sees the markup it is repairing; styles are omitted to keep the request small.
+    const pageSource = cafeHtml(false).replace(/<style>[\s\S]*?<\/style>/, '');
     let results = await check(`${fixtureOrigin}/fixtures/broken`, snapshot.criteria, {
       fixture: true,
       fixtureOrigin,
@@ -160,6 +168,7 @@ export async function runRepairAgent(
           brief: snapshot.brief,
           criteria: snapshot.criteria,
           handler,
+          page: pageSource,
           results: results.map(({ screenshot, ...r }) => r),
           attempt,
           remainingMs: 135000 - (Date.now() - started),
@@ -169,7 +178,7 @@ export async function runRepairAgent(
         Date.now() - started < 135000,
         'Agent time budget reached. No new artifact was submitted.',
       );
-      handler = patch.handler;
+      handler = stripCodeFence(patch.handler);
       const artifactId = randomUUID(),
         html = cafeHtml(false, handler),
         sha256 = createHash('sha256').update(html).digest('hex');
