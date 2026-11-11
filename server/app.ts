@@ -46,6 +46,7 @@ import {
   currentChange,
 } from './changes.js';
 import { artifactHeaders } from './agent.js';
+import { appUrl } from './config.js';
 import {
   paymentRulesInput,
   rulesFor,
@@ -88,7 +89,7 @@ async function session(res: Response, w: Workspace, r: Role) {
   res.cookie('proofpay_session', token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.APP_URL?.startsWith('https:') || false,
+    secure: appUrl().startsWith('https:'),
     maxAge: 7 * 86400000,
     path: '/',
   });
@@ -129,7 +130,7 @@ export function createApp() {
     res.setHeader('Cache-Control', 'no-store');
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.path !== '/paypal/webhook') {
       const origin = req.headers.origin;
-      const allowed = new Set([process.env.APP_URL || 'http://localhost:5173']);
+      const allowed = new Set([appUrl()]);
       if (process.env.NODE_ENV !== 'production')
         for (const host of ['localhost', '127.0.0.1'])
           for (const port of [5173, Number(process.env.PORT || 3001)])
