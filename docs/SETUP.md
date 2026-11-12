@@ -1,6 +1,6 @@
 # Configuration and provider runs
 
-Start with the [local setup](../README.md#run-locally). Set secrets in the local `.env` file or your hosting provider’s secret configuration. Restart after changing them. `.env` and local databases are excluded from Git and Docker build context.
+Start with the [local setup](../README.md#try-it). Set secrets in the local `.env` file or your hosting provider’s secret configuration. Restart after changing them. `.env` and local databases are excluded from Git and Docker build context.
 
 ## Environments
 

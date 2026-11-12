@@ -10,7 +10,7 @@ Do these in order. Each step feeds the next.
 4. **Record the video** following the [video guide](AGENT_DEMO.md), which has the spoken script and the clicks. With the OpenAI key set, the guided demo shows the model-written repair in one flow with simulated payment; use the merchant workspace for the PayPal sandbox capture. Tell one story: failure, model-written fix, independent proof, sandbox capture, decision replay. Leave terms review, scope changes, and the freelancer workflow out of the video.
 5. **Upload to YouTube** as public, under three minutes. Label any time compression.
 6. **Host it if time allows.** Deploy the [Render Blueprint](../render.yaml), then run `npm run smoke -- https://your-host`. Otherwise the repository setup instructions are the evaluation route.
-7. **Update the status lines** in the [README](../README.md#current-verification) and the Devpost text below so they match the results table, then paste the text into Devpost.
+7. **Update the status lines** in the [README](../README.md#verification) and the Devpost text below so they match the results table, then paste the text into Devpost.
 
 ## Live run results
 
