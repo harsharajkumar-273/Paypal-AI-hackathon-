@@ -7315,3 +7315,22 @@ a:focus-visible {
   white-space: nowrap;
   border: 0;
 }
+
+.walkthrough-agent {
+  padding: 8px 24px 20px;
+  border-top: 1px solid #e4ecf6;
+}
+.walkthrough-agent .walkthrough-error {
+  margin: 0 0 16px;
+}
+.walkthrough-agent .agent-attempt {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.walkthrough-agent .agent-attempt pre {
+  padding: 12px;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

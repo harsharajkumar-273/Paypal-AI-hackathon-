@@ -1,5 +1,6 @@
 # Deploy this Blueprint from your public GitHub repository.
-# Set APP_URL to the final web-service HTTPS origin before using payment redirects.
+# APP_URL may stay blank: the app falls back to Render's RENDER_EXTERNAL_URL. Set it for a custom domain.
+# Set the worker's FIXTURE_ORIGIN to the web service's public HTTPS origin.
 services:
   - type: web
     name: proofpay
@@ -45,6 +46,16 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # The worker settles automatic payments after verification, so it needs the same
+      # PayPal sandbox credentials and public origin as the web service.
+      - key: APP_URL
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: proofpay-db

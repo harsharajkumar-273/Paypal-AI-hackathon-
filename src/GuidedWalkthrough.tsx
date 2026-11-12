@@ -15,9 +15,10 @@ import {
   RotateCcw,
   Monitor,
   LockKeyhole,
+  Code2,
 } from 'lucide-react';
 import type { Agreement, Result, Workspace } from '../server/domain';
-import { walkthroughState, walkthroughSteps } from './walkthroughState';
+import { deliverySource, walkthroughState, walkthroughSteps } from './walkthroughState';
 type Props = {
   workspace: Workspace;
   obscured?: boolean;
@@ -40,11 +41,13 @@ type Props = {
 export function WalkthroughInvite({
   resume,
   busy,
+  ai,
   onStart,
   onResume,
 }: {
   resume: boolean;
   busy: string;
+  ai: boolean;
   onStart: () => void;
   onResume: () => void;
 }) {
@@ -63,7 +66,9 @@ export function WalkthroughInvite({
           in one guided flow.
         </p>
         <span className="walkthrough-invite-note">
-          Real browser checks · Authored fixtures · Simulated payments
+          {ai
+            ? 'Real browser checks · Model-written repair · Simulated payments'
+            : 'Real browser checks · Authored fixtures · Simulated payments'}
         </span>
       </div>
       <button className="button primary" disabled={!!busy} onClick={resume ? onResume : onStart}>
@@ -142,7 +147,13 @@ export function GuidedWalkthrough({
   }, [obscured]);
   if (!candidate || !info) return null;
   const a = candidate;
-  const { step, failedRun, correctedRun, currentRun, running, passed } = info;
+  const { step, failedRun, correctedRun, currentRun, running, passed, agent } = info;
+  // With a model configured, the correction can come from the repair agent instead of the
+  // authored fixture. The visitor chooses; the authored correction stays available as a fallback.
+  const agentChosen = Boolean(a.agentTask);
+  const agentDelivery = Boolean(correctedRun?.artifactId);
+  const aiPath = agentChosen || (ai && !correctedRun);
+  const agentWorking = Boolean(agent && running && currentRun?.id === agent.id);
   const bookingFailure =
     failedRun?.results.find((r) => r.criterionId === 'booking') ||
     failedRun?.results.find((r) => r.status === 'fail');
@@ -171,6 +182,11 @@ export function GuidedWalkthrough({
     await switchRole('developer');
     await action('/verify', { url: 'fixture:' + which });
   }
+  async function runAgent() {
+    await switchRole('developer');
+    await call('/demo/walkthrough/agent', {});
+    await action('/agent/start');
+  }
   async function termsChapter() {
     await switchRole('developer');
     const target = await call('/demo/walkthrough/terms', {});
@@ -188,18 +204,63 @@ export function GuidedWalkthrough({
     'A clear finish line, before anyone starts.',
     'Set the payment boundary once.',
     'Looks finished. The booking form isn’t.',
-    'A correction must earn a fresh pass.',
+    aiPath ? 'Now the agent has to earn it.' : 'A correction must earn a fresh pass.',
     'Proof checked. Payment confirmed.',
   ];
   const captions = [
     'A $75 booking-form repair. Five agreed checks. In this private demo, you play both sides; we handle the role changes.',
     'The buyer authorizes $75 and chooses when automatic capture is allowed. These controls use virtual demo funds.',
     'Run the exact agreed checks in Chromium. A polished preview cannot substitute for a working reservation.',
-    'Submit the authored corrected delivery. The browser runs the same checks again; passing evidence can trigger the approved demo payment.',
+    aiPath
+      ? 'A repair agent asks a model for a patch. Chromium tests each patch against the same five checks, which the agent cannot change. Passing evidence can trigger the approved demo payment.'
+      : 'Submit the authored corrected delivery. The browser runs the same checks again; passing evidence can trigger the approved demo payment.',
     a.payment.captureMethod === 'automatic'
       ? 'The receipt is tied to this agreement, this delivery, and the buyer’s limits. No additional payment click was needed.'
       : 'The receipt is tied to this agreement and verified delivery, with the recorded buyer-approved capture.',
   ];
+  const agentPanel = agent && (
+    <div className="walkthrough-agent">
+      <div className="agent-run-meta">
+        <span>REPAIR AGENT · {agent.model || 'model not called yet'}</span>
+        <span>{agent.status}</span>
+      </div>
+      {agent.error && (
+        <div className="walkthrough-error" role="alert">
+          <AlertCircle size={18} />
+          <p>{agent.error} No delivery was submitted and no payment was captured.</p>
+        </div>
+      )}
+      <div className="agent-tool-log">
+        {agent.steps.map((entry, i) => (
+          <div key={i}>
+            <span className="agent-tool-number">{String(i + 1).padStart(2, '0')}</span>
+            <div>
+              <strong>{entry.tool.replaceAll('_', ' ')}</strong>
+              <p>{entry.detail}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      {agent.attempts.map((attempt, i) => (
+        <div className="agent-attempt" key={attempt.artifactId}>
+          <div className="agent-attempt-heading">
+            <Code2 size={16} />
+            <strong>Patch {i + 1}</strong>
+            <span>
+              {attempt.results.filter((r) => r.status === 'pass').length}/
+              {a.criteria.filter((c) => c.type !== 'manual').length} browser checks passed
+            </span>
+          </div>
+          <p>{attempt.explanation}</p>
+          <code className="artifact-digest">SHA-256 {attempt.sha256}</code>
+          <details>
+            <summary>Inspect the model-written handler</summary>
+            <pre>{attempt.handler}</pre>
+          </details>
+        </div>
+      ))}
+    </div>
+  );
   return (
     <div
       ref={shell}
@@ -248,8 +309,8 @@ export function GuidedWalkthrough({
       <div className="walkthrough-shell">
         <div className="walkthrough-disclosure">
           <span className="walkthrough-live-dot" />
-          Actual browser verification <span>·</span> Authored demo deliveries <span>·</span>{' '}
-          Simulated payments
+          Actual browser verification <span>·</span> Authored broken page, {deliverySource(a)}{' '}
+          <span>·</span> Simulated payments
         </div>
         <ol className="walkthrough-progress" aria-label="Demo progress">
           {walkthroughSteps.map((label, i) => (
@@ -464,26 +525,32 @@ export function GuidedWalkthrough({
                       })}
                     </div>
                   </div>
-                ) : (
+                ) : step === 3 && agent ? null : (
                   <iframe
                     key={step}
                     title={
-                      step === 2
+                      step === 2 || aiPath
                         ? 'Authored café page with a broken booking form'
                         : 'Authored corrected café delivery awaiting independent verification'
                     }
-                    src={'/fixtures/' + (step === 2 ? 'broken' : 'fixed')}
+                    src={'/fixtures/' + (step === 2 || aiPath ? 'broken' : 'fixed')}
                     sandbox="allow-scripts allow-forms"
                   />
                 )}
+                {step === 3 && agentPanel}
                 {running && (
                   <div className="walkthrough-verifying" role="status">
                     <Loader2 className="spin" size={21} />
                     <div>
-                      <strong>Chromium is checking the agreed work</strong>
+                      <strong>
+                        {agentWorking
+                          ? 'The repair agent is working'
+                          : 'Chromium is checking the agreed work'}
+                      </strong>
                       <span>
-                        {elapsed}s elapsed, including queue time. Findings appear when the run
-                        completes.
+                        {agentWorking
+                          ? `${elapsed}s elapsed. Chromium tests each patch before anything is submitted.`
+                          : `${elapsed}s elapsed, including queue time. Findings appear when the run completes.`}
                       </span>
                     </div>
                   </div>
@@ -535,6 +602,12 @@ export function GuidedWalkthrough({
                       </dd>
                     </div>
                   )}
+                  {correctedRun?.artifactSha256 && (
+                    <div>
+                      <dt>Delivery</dt>
+                      <dd>Model-written artifact {correctedRun.artifactSha256.slice(0, 12)}</dd>
+                    </div>
+                  )}
                   <div>
                     <dt>Agreement</dt>
                     <dd>Version {a.version}</dd>
@@ -559,6 +632,17 @@ export function GuidedWalkthrough({
                     capture are recorded in your private demo workspace.
                   </p>
                 </div>
+                {agentDelivery && (
+                  <>
+                    <div className="walkthrough-scene-header">
+                      <div>
+                        <span className="walkthrough-kicker">HOW THE AGENT EARNED IT</span>
+                        <h2>Every patch, and what the browser found.</h2>
+                      </div>
+                    </div>
+                    {agentPanel}
+                  </>
+                )}
               </>
             )}
           </section>
@@ -589,7 +673,9 @@ export function GuidedWalkthrough({
                   'These checks belong to the agreement. A delivery cannot change the finish line.',
                   'Approve the job amount and consent to bounded automatic capture. No real money moves in this walkthrough.',
                   'The page looks ready, but its submit handler is broken. Run the agreed tests to see the failure.',
-                  'The authored corrected fixture repairs the submit handler. It must pass a new run before payment can follow.',
+                  aiPath
+                    ? 'The agent can rewrite one booking handler. It cannot touch the checks, the price, or the payment rules. Only a patch that passes a new browser run is submitted.'
+                    : 'The authored corrected fixture repairs the submit handler. It must pass a new run before payment can follow.',
                   'Verification and the buyer’s rules, rather than a model claiming success, determine payment eligibility.',
                 ][step]
               }
@@ -637,7 +723,7 @@ export function GuidedWalkthrough({
                     : 'Check the first delivery'}
               </button>
             )}
-            {step === 3 && (
+            {step === 3 && !aiPath && (
               <button
                 className="walkthrough-primary"
                 disabled={waiting || passed || a.payment.status === 'capture_pending'}
@@ -650,6 +736,33 @@ export function GuidedWalkthrough({
                     ? 'Waiting for payment confirmation…'
                     : 'Verify the corrected delivery'}
               </button>
+            )}
+            {step === 3 && aiPath && (
+              <>
+                <button
+                  className="walkthrough-primary"
+                  disabled={waiting || passed || a.payment.status === 'capture_pending'}
+                  onClick={() => act('Starting the repair agent', runAgent)}
+                >
+                  {waiting ? <Loader2 className="spin" size={16} /> : <Play size={16} />}{' '}
+                  {waiting
+                    ? 'Agent working…'
+                    : passed
+                      ? 'Waiting for payment confirmation…'
+                      : agent
+                        ? 'Run the agent again'
+                        : 'Let the AI agent write the fix'}
+                </button>
+                {!waiting && !passed && (
+                  <button
+                    className="walkthrough-text-button"
+                    onClick={() => act('Verifying the authored correction', () => check('fixed'))}
+                  >
+                    Use the authored correction instead
+                    <ArrowRight size={13} />
+                  </button>
+                )}
+              </>
             )}
             {step === 3 && bookingFailure && (
               <div className="walkthrough-lesson">
@@ -706,7 +819,7 @@ export function GuidedWalkthrough({
                     </div>
                     <ChevronRight size={17} />
                   </button>
-                  {ai && (
+                  {ai && !agentChosen && (
                     <button
                       disabled={!!busy}
                       onClick={() =>
@@ -740,9 +853,11 @@ export function GuidedWalkthrough({
                       ? 'A real browser performs a test reservation. Missing evidence never becomes a pass.'
                       : step === 3
                         ? 'The original failure stays in history. The corrected result is assessed against the same checks.'
-                        : failedRun
-                          ? 'The first delivery failed. The correction passed. The standing rule captured a simulated payment.'
-                          : 'A verified delivery met the buyer’s payment rules. See the stored findings for the actual run history.'}
+                        : failedRun && agentDelivery
+                          ? 'The first delivery failed. A model-written patch passed the same checks. The standing rule captured a simulated payment.'
+                          : failedRun
+                            ? 'The first delivery failed. The correction passed. The standing rule captured a simulated payment.'
+                            : 'A verified delivery met the buyer’s payment rules. See the stored findings for the actual run history.'}
               </p>
             </div>
             <button

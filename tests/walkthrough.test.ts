@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { seedWorkspace, type Agreement } from '../server/domain.js';
-import { walkthroughState } from '../src/walkthroughState.js';
+import { deliverySource, walkthroughState } from '../src/walkthroughState.js';
 function agreement() {
   const a = seedWorkspace('guide-test').agreements[0];
   a.criteria = a.criteria.filter((c) => c.type !== 'manual');
@@ -77,4 +77,18 @@ test('a newer failed correction does not reuse an older passing delivery', () =>
   const passed = run(a, 'fixture:fixed', 'completed');
   a.runs = [run(a, 'fixture:fixed', 'error'), passed];
   assert.equal(walkthroughState(a, true).passed, false);
+});
+
+test('the delivery label follows the delivery that exists, including after an agent fallback', () => {
+  const a = authorized();
+  assert.equal(deliverySource(a), 'authored deliveries');
+  a.agentTask = true;
+  assert.equal(deliverySource(a), 'repair agent');
+  const failedAgent = { ...run(a, 'fixture:broken', 'completed', true), status: 'error' as const };
+  a.runs.unshift(failedAgent);
+  assert.equal(deliverySource(a), 'repair agent');
+  a.runs.unshift(run(a, 'fixture:fixed', 'completed'));
+  assert.equal(deliverySource(a), 'authored correction');
+  a.runs.unshift({ ...run(a, 'fixture:agent:abc', 'completed'), artifactId: 'abc' });
+  assert.equal(deliverySource(a), 'model-written repair');
 });

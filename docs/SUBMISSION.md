@@ -1,50 +1,102 @@
-# Submission draft
+# Submission
 
-## Name and tagline
+## Before submitting
+
+Do these in order. Each step feeds the next.
+
+1. **Check the machine.** Fill `.env` with the OpenAI key, PayPal sandbox app credentials, and two role invitations, then run `npm run preflight`. Continue when it reports the full live run is ready.
+2. **Do the live run once, off camera.** Follow the [provider-run steps](SETUP.md#paypal-sandbox-run): commission the agent task, approve as both roles, authorize with the sandbox buyer, enable standing rules, start the agent, and wait for the automatic capture. Then report a problem as Buyer and refund as Seller.
+3. **Write down what happened** in the [results table](#live-run-results) below and in [VALIDATION.md](VALIDATION.md). A failed model call or repair is a result too; record it and rerun.
+4. **Record the video** following the [video guide](AGENT_DEMO.md), which has the spoken script and the clicks. With the OpenAI key set, the guided demo shows the model-written repair in one flow with simulated payment; use the merchant workspace for the PayPal sandbox capture. Tell one story: failure, model-written fix, independent proof, sandbox capture, decision replay. Leave terms review, scope changes, and the freelancer workflow out of the video.
+5. **Upload to YouTube** as public, under three minutes. Label any time compression.
+6. **Host it if time allows.** Deploy the [Render Blueprint](../render.yaml), then run `npm run smoke -- https://your-host`. Otherwise the repository setup instructions are the evaluation route.
+7. **Update the status lines** in the [README](../README.md#verification) and the Devpost text below so they match the results table, then paste the text into Devpost.
+
+## Live run results
+
+Fill these from the actual run. Leave a row as "not run" rather than guessing.
+
+| Item                                       | Observed |
+| ------------------------------------------ | -------- |
+| Date and commit                            | not run  |
+| Model and number of repair attempts        | not run  |
+| Agent run duration                         | not run  |
+| Browser checks on the final artifact       | not run  |
+| Artifact SHA-256 (first 12 characters)     | not run  |
+| PayPal sandbox authorization ID            | not run  |
+| PayPal sandbox capture ID                  | not run  |
+| PayPal sandbox refund ID                   | not run  |
+| Signed webhook received and processed once | not run  |
+| Hosted URL and smoke result                | not run  |
+| YouTube link                               | not run  |
+
+## Devpost text
+
+Edit the wording into your own voice. Keep the claims in line with the results table.
+
+### Name and tagline
 
 **ProofPay — Pay for proven agent work.**
 
-## Problem
+### Inspiration
 
-An AI agent can say a task is done without delivering a working result. The buyer needs an independent basis for payment, and the agent operator needs a clear finish line. Requiring a human to approve every successful routine capture also limits automation.
+An AI agent can say a task is done without delivering a working result. If agents are going to be paid for work, the buyer needs a basis for payment that the agent did not write itself, and the agent's operator needs a clear finish line. Asking a person to approve every routine payment defeats the point of using an agent.
 
-## What it does
+### What it does
 
-A buyer commissions a bounded website repair with a fixed price and agreed checks. A repair agent inspects the defective source, requests an actual model-written patch, and receives independent browser feedback. It can revise once. Only a passing artifact becomes a submitted delivery, identified by a full HTML SHA-256 digest.
+A buyer commissions a small website repair at a fixed price, with five acceptance checks agreed up front. The buyer authorizes that amount through PayPal and sets a per-payment and monthly limit.
 
-Buyer-approved standing rules permit capture of an existing PayPal sandbox authorization when the agreement, evidence, scope, and spending limits match. Failed checks stop payment; subjective work and policy exceptions require attention. The agent cannot change its own checks, price, authorization, or payment rules.
+A repair agent reads the broken booking form, asks a model for a patch, and gets back the results of an independent browser test. It can revise once. Only an artifact that passes every check becomes a delivery, identified by the SHA-256 of its HTML.
 
-If a buyer reports a payment problem, ProofPay saves the original agreement and delivery evidence and pauses future automatic captures. The seller reviews the case and can issue a full or partial refund against the original capture. A confirmed refund retains its provider record, and the buyer explicitly decides when to resume automation.
+Payment follows the evidence. The buyer's standing rules capture the existing PayPal authorization only when the agreement version, the checks, the scope, and the budget all match. A failed or inconclusive check blocks payment. The agent can change the code; it cannot change its checks, its price, or the payment rules.
 
-The business can also propose changed agreement terms. A buyer sees the exact price delta and every non-price change, asks questions, and uses an advisory AI reader whose findings quote changed clauses. A saved per-change checklist and buyer-controlled question resolution guard acceptance. The buyer can export the decision record. New terms require explicit version-bound consent and a fresh payment authorization; existing spending rules cannot silently accept them.
+Afterwards the buyer can ask **why did this payment happen?** Decision replay shows the agreement, each delivery attempt, the findings, and the policy inputs saved at capture time. A policy lab reruns the same evaluator on copies, for example with a lower limit or a failed check, without touching the real record. A proof bundle exports all of it with a checksum.
 
-## PayPal and AI
+If something is wrong, the buyer reports a problem from the receipt. Automatic payments pause, the seller reviews the case, and a full or partial refund goes back against the original PayPal capture.
 
-The PayPal adapter implements authorization, conditional capture, voiding, full/partial refunds, webhook verification, and reconciliation. Each task has an existing buyer-approved authorization. One sandbox seller operates the agent and receives payment.
+The café repair is small on purpose. The same pattern fits any agent task whose result a machine can check.
 
-OpenAI produces actual booking-handler code from the defective source and browser observations. The repair loop stores the generated artifact and tests it separately from the model. OpenAI also supports criterion suggestions, scope advice, and evidence summaries for human projects. AI output cannot override deterministic payment eligibility.
+### How we built it
 
-## Specific contribution
+- **PayPal:** Orders and Payments sandbox APIs for authorization, conditional capture, void, full and partial refund, and reconciliation, with request IDs so a retried call cannot pay twice. Webhooks are signature-verified before processing.
+- **AI:** OpenAI structured outputs write the booking-handler patch from the defective source and the browser observations. The model's output is stored and tested separately; it never decides payment eligibility.
+- **Verification:** a Playwright worker runs real Chromium against the stored artifact under a sandboxed origin and keeps screenshots as evidence.
+- **App:** React and Vite front end, Express API, PostgreSQL (embedded PGlite locally), TypeScript throughout. 80 unit and API tests and 7 real-browser acceptance tests run in CI.
 
-This prototype connects an agent-written artifact, independent acceptance evidence, a versioned agreement, buyer-approved payment limits, and payment recovery in one reviewable record. It focuses on a small repair adapter so the entire workflow can be inspected.
+### Challenges
 
-## Validation status
+- **A patch that claims success.** In testing, a patch that showed a success message without sending the reservation looked fine on screen. The check therefore requires a successful POST to the agreed endpoint, not only the visible message.
+- **Money and retries.** A capture or refund can time out with the outcome unknown. Amounts stay reserved until PayPal confirms either way, and a retry reuses the same request ID.
+- **Keeping the agent away from its own finish line.** Checks, price, and rules live in a versioned agreement that only the two people can approve. Any change to terms pauses payment and needs fresh consent and a fresh authorization.
+- **Honest labeling.** Every screen and export says whether a payment was simulated or went through the PayPal sandbox.
 
-The local suite passes 77 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 browser tests. The default walkthrough uses authored fixtures and simulated payments; agent acceptance tests use a deterministic model adapter with real Chromium. Sandbox OAuth and buyer-approved authorization have succeeded; live AI delivery, capture/refund, webhook delivery and deployment remain pending. Source is published publicly with the MIT license. Update this section with observed provider-run results before submitting.
+### Accomplishments
+
+- One record ties together the agreement version, the agent's artifact, the independent evidence, the payment policy, and the PayPal receipt.
+- A payment decision can be replayed and questioned after the fact with its original inputs.
+- The no-key guided demo lets anyone watch a real browser catch the failure without any credentials.
+
+### What we learned
+
+Verification has to be independent of the agent and agreed before the work starts, or it is not evidence. Automatic payment is acceptable to a buyer only when the limits are theirs, the exceptions come back to a person, and a refund path exists.
+
+### What's next
+
+More task types with machine-checkable results, multiple sellers, PayPal Disputes integration, and PayPal's agentic commerce services so external agents can take and settle tasks directly.
+
+### Built with
+
+PayPal Orders and Payments APIs (sandbox), OpenAI, Playwright, TypeScript, React, Vite, Express, PostgreSQL, PGlite, Docker, Render.
+
+### Status (update before pasting)
+
+Sandbox sign-in and a buyer-approved $75 authorization have succeeded. The model-written repair, sandbox capture and refund, signed webhook delivery, and hosted deployment are not yet run; replace this paragraph with the results table once they are. The no-key guided demo uses authored fixtures and simulated payments with real browser checks.
 
 ## Limits
 
 The project uses standard PayPal Orders/Payments sandbox APIs, not separately onboarded Agentic Commerce Services. It supports one seller and a bounded website-repair task. An authorization is a temporary hold, not escrow; standing rules capture an existing authorization rather than create arbitrary new charges. Support cases receive human review, with no guaranteed recovery or legal adjudication. See the complete [product limits](../README.md#limits).
 
-## Video and submission checklist
-
-Use the [agent-work demo script](AGENT_DEMO.md) for the configured-provider video. The no-key interactive guide demonstrates the payment and verification mechanics using clearly labeled authored fixtures. Keep the human freelancer workflow as a second use case.
-
-- Publish the source repository with its MIT license and verified setup instructions.
-- Provide complete setup instructions or a hosted working build, as allowed by the supplied rules. For the hosted route, deploy web/worker/PostgreSQL and configure the final URL and credentials.
-- Record an actual AI-generated repair, independent browser checks, and real sandbox authorization/capture. Show the corresponding artifact and receipt.
-- Upload a public YouTube video under three minutes. Label any time compression or fallback footage.
-- Include measured timing and actual user feedback only after collecting them. Do not invent testimonials, savings, novelty claims, or likely prize rankings.
+Do not invent testimonials, savings, novelty claims, or prize rankings. Include timings and user feedback only after collecting them.
 
 ## Feedback prompts
 

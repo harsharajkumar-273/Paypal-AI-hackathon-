@@ -162,3 +162,26 @@ test('expired authorization permits a fresh order without retaining old authoriz
   assert.equal(current.payment.authorizationId, undefined);
   assert.equal(current.payment.status, 'created');
 });
+
+test('a process without PayPal credentials never reserves a sandbox capture', async () => {
+  const { w, a } = await setup('no-credentials');
+  const id = process.env.PAYPAL_CLIENT_ID,
+    secret = process.env.PAYPAL_CLIENT_SECRET;
+  let requests = 0;
+  globalThis.fetch = async () => {
+    requests++;
+    return json({});
+  };
+  delete process.env.PAYPAL_CLIENT_ID;
+  delete process.env.PAYPAL_CLIENT_SECRET;
+  try {
+    await assert.rejects(() => capture(w.id, a.id), /no PayPal sandbox credentials/);
+  } finally {
+    process.env.PAYPAL_CLIENT_ID = id;
+    process.env.PAYPAL_CLIENT_SECRET = secret;
+  }
+  const after = find(await getWorkspace(w.id), a.id);
+  assert.equal(after.payment.status, 'authorized');
+  assert.equal(after.payment.captureMethod, undefined);
+  assert.equal(requests, 0);
+});

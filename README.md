@@ -2,32 +2,24 @@
 
 **Pay for proven agent work.**
 
-A buyer commissions a website repair. An AI agent writes the patch. An independent browser tests the result. Buyer-approved rules control payment through PayPal sandbox.
-
-ProofPay connects the agreed checks, generated artifact, browser evidence, spending policy, and payment receipt in one workspace. If a payment goes wrong, the buyer can open a support case, pause automatic payments, and request a seller-reviewed refund.
+A buyer commissions a website repair. An AI agent writes the patch. An independent browser tests the result. Rules the buyer approved control payment through the PayPal sandbox.
 
 ![ProofPay agent workspace](docs/agent-preview.png)
 
-## The agent workflow
+## How it works
 
 1. **Commission:** the buyer creates a $75 café booking-form repair with five objective acceptance checks.
-2. **Agree and authorize:** buyer and developer approve the same agreement version. The buyer authorizes the fixed amount through PayPal sandbox and enables per-payment and monthly spending limits.
-3. **Repair:** the agent inspects the defective handler and browser results, proposes a patch, and can revise once after independent feedback.
-4. **Prove:** Playwright tests the stored artifact. A failed or inconclusive required check blocks payment. A passing delivery retains screenshots and its full HTML SHA-256 digest.
-5. **Pay:** standing rules capture the existing authorization only when the agreement, evidence, scope, and budget permit it. The seller operating the agent receives payment.
-6. **Resolve:** a buyer complaint preserves the agreement and evidence, pauses automatic captures, and opens a seller review. Full or partial refunds retain the original receipt; resuming automation requires an explicit buyer action.
+2. **Agree and authorize:** buyer and developer approve the same agreement version. The buyer authorizes the amount through PayPal and sets per-payment and monthly limits.
+3. **Repair:** the agent reads the broken handler and the browser results, asks a model for a patch, and can revise once after independent feedback.
+4. **Prove:** Playwright tests the stored artifact in real Chromium. A failed or inconclusive required check blocks payment. A passing delivery keeps its screenshots and the SHA-256 digest of its HTML.
+5. **Pay:** standing rules capture the existing authorization only when the agreement, evidence, scope and budget allow it.
+6. **Resolve:** if the buyer reports a problem, automatic payments pause, the evidence is kept, and the seller can issue a full or partial refund against the original capture.
 
-The agent can change the booking handler. It cannot change the agreed checks, price, spending rules, or payment operations.
+The agent can change the booking handler. It cannot change the agreed checks, the price, the spending rules, or any payment operation. The café repair is small on purpose; the same pattern fits any agent task whose result a machine can check.
 
-## Payment Decision Replay
+Afterwards the buyer can ask **why did this payment happen?** Decision replay shows the inputs saved at capture time, lets a policy lab rerun the same evaluator on copies, and exports a proof bundle with a checksum. See [features in depth](docs/FEATURES.md) for replay, agreement-change review and human-delivery projects.
 
-Open **Decision replay** on a project, or choose **Why did this payment happen?** after the guided demo. Follow the agreement, delivery attempts, independent findings, payment policy, and receipt.
-
-New captures save their original decision inputs, policy version, UTC budget usage, and decision time. The isolated policy lab can lower the spending limit, fail a required check, add an unapproved terms change, or simulate a buyer complaint. It runs the existing automatic-payment evaluator on copies and cannot capture funds or alter recorded evidence. Explicit buyer capture is displayed separately from automatic-policy eligibility.
-
-**Download proof bundle** exports a private JSON attachment with the agreement, recorded decision, verification findings, included JPEG evidence, agent artifacts when present, event history, transaction references, and a SHA-256 content checksum. The checksum is not a digital signature. Older payments without a capture-time record are labeled honestly and do not receive fabricated historical inputs.
-
-## Run locally
+## Try it
 
 Requires Node.js 22.18+ and npm.
 
@@ -38,37 +30,21 @@ cp .env.example .env
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. Each visitor receives an isolated walkthrough workspace with role switching. Records persist in `.data/postgres` using PGlite, an embedded PostgreSQL runtime. Use one app process with embedded storage. If another app occupies API port `3001`, choose a free `PORT` in `.env`; Vite and the browser worker use that same configured port. Restart `npm run dev` after changing it.
-
-### Explore without credentials
-
-The default walkthrough uses authored café fixtures and **simulated payments** with `DEMO-` identifiers. Browser checks and screenshots run in actual Chromium. The model-backed repair requires an OpenAI key.
-
-Click **Start interactive demo** on the welcome card. The guide creates a fresh private example and leads through five chapters:
-
-1. **Agree:** inspect the $75 booking repair and five checks, then approve both fictional demo roles with one action.
-2. **Authorize:** explicitly enable the displayed $75-per-job / $150-monthly demo rules and authorize virtual funds.
-3. **Find the failure:** run the actual browser checks, inspect the failed reservation and its screenshot, then continue.
-4. **Verify the fix:** submit the authored corrected fixture to the same checks. Passing evidence permits automatic simulated capture under the rules you enabled.
-5. **Receipt:** inspect the recorded `DEMO-` transaction, delivery results, and policy. Optional chapters open a $2-plus-data-sharing proposal for a **separate follow-up job**, or a buyer support case on the paid example.
-
-The guide handles role switches, shows live worker progress, and resumes from persisted records. On narrow screens, the next action stays pinned at the bottom. Close it at any time to explore the underlying workspace; **Continue demo** returns to the current chapter. **Restart in a fresh private demo** creates a new isolated example. Merchant sessions cannot invoke these demo setup routes.
+Open **http://127.0.0.1:5173** and click **Start interactive demo**. No keys are needed: you play both roles through five chapters (agree, authorize, find the failure, verify the fix, receipt) using real Chromium checks and simulated payments.
 
 ![Interactive walkthrough receipt](docs/walkthrough-preview.png)
 
-The original manual workspace and objective-only update remain available for free exploration. The guided route does not need AI or PayPal credentials and does not claim an agent generated its delivery.
+To have a model write the repair, set `OPENAI_API_KEY` in `.env` and restart. Chapter four then offers **Let the AI agent write the fix**: the agent asks the model for a patch, Chromium tests each patch against the same five checks, and the receipt lists every patch with its code and digest. For real PayPal sandbox transactions, use the merchant workspace with separate buyer and developer invitations. Run `npm run preflight` to see which route your machine is ready for; it makes one small request to each configured provider, prints no secrets and moves no money. Details are in the [setup guide](docs/SETUP.md).
 
-### Run the model-backed agent
+| Route                                             | Agent repair                  | Browser checks | Payment                        |
+| ------------------------------------------------- | ----------------------------- | -------------- | ------------------------------ |
+| Guided demo, no keys                              | Authored broken/fixed fixture | Real Chromium  | Simulated, `DEMO-` identifiers |
+| Guided demo or agent task with an OpenAI key      | Written by the model          | Real Chromium  | Simulated, `DEMO-` identifiers |
+| Merchant workspace with OpenAI and PayPal sandbox | Written by the model          | Real Chromium  | PayPal sandbox Orders/Payments |
 
-Set `OPENAI_API_KEY` in `.env` and restart. As Buyer, select **Commission agent task**, approve the agreement with both roles, authorize, and enable standing rules. As Business, open **Agent work** and start the repair.
+The interface labels each route the same way.
 
-An isolated walkthrough with an OpenAI key uses actual model calls and simulated payment. To use actual **PayPal sandbox transactions**, enter the shared merchant workspace using separate buyer/developer invitations. Follow the [configuration and provider-run guide](docs/SETUP.md).
-
-## Current verification
-
-The local build passes **77 domain/API/payment/recovery/agreement-change/walkthrough tests and 5 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter and simulated payment.
-
-**PayPal sandbox authentication and a buyer-approved $75 authorization have succeeded. Live AI-generated delivery, sandbox capture/refund, webhook delivery and hosted deployment remain pending.** The [source repository](https://github.com/harsharajkumar-273/Paypal-AI-hackathon-) is public under the MIT license. See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
+## Verification
 
 ```sh
 npm run build
@@ -77,33 +53,11 @@ npm run test:browser
 npm run format:check
 ```
 
-If Chromium uses a custom installation directory, set `PLAYWRIGHT_BROWSERS_PATH` consistently for installation, app execution, and tests. On Linux, Chromium may require system dependencies: `npx playwright install --with-deps chromium`.
+The build passes **80 unit/API tests and 7 real-browser tests** plus the TypeScript and Vite checks. The agent browser tests use a deterministic or mocked model and simulated payment.
 
-## Agreement changes and buyer-side review
+**PayPal sandbox authentication and a buyer-approved $75 authorization have succeeded. Live AI-generated delivery, sandbox capture/refund, webhook delivery and hosted deployment remain pending.** The [source repository](https://github.com/harsharajkumar-273/Paypal-AI-hackathon-) is public under the MIT license. See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
 
-Open **Terms review** to propose a new fixed price, work brief, deadline, or additional clauses. The business records its explanation and approves the exact proposal; the buyer receives a persistent in-app notice and payment on that job pauses. The comparison highlights non-price changes, shows every addition/removal, and keeps both complete recorded versions accessible.
-
-The buyer-side AI reader examines the old and new documents for cost, data, permissions, service, cancellation, and legal wording. Each finding must identify a changed field and quote text actually present there. An unsupported citation or provider failure yields an unavailable review, never approval. The business’s reason remains a separately labeled claim. Without an AI key, the exact comparison and private question thread still work.
-
-Acceptance records the proposal digest, version, time, and decision note. An existing order/authorization must first be voided; the accepted replacement starts with no payment or delivery evidence and needs a fresh authorization and verification. Future-effective terms cannot authorize payment early. Declining explicitly keeps the original terms; spending limits alone never accept a proposal.
-
-The buyer’s per-change acknowledgement checklist is saved against the proposal digest and survives reloads. Questions can reference a specific change and have threaded replies. Only the buyer can mark a question addressed or no longer blocking, with a saved explanation; new replies reopen that question. Acceptance requires a complete checklist and no open buyer questions. Declining does not require accepting any new obligation.
-
-Export a private JSON review/decision record with the full terms, comparison, model-review provenance, discussion, acknowledgements, decision, and digest consistency checks. The record is workspace-authenticated and is not a digital signature or proof that someone read the agreement.
-
-For the demonstration, open an unpaid café job as Business and load **+$2 and a data-sharing clause**. Publish, switch to Buyer, inspect both changes, and ask which partners receive data before deciding. Notifications are inside the current agreement workspace; this is not subscription repricing, email broadcasting, or a multi-buyer business portal. See [architecture](docs/ARCHITECTURE.md#agreement-change-review).
-
-## Human delivery and scope changes
-
-The same workflow supports a developer delivering a small website. The initial café project provides this secondary walkthrough: approve as both roles, authorize, verify the broken and corrected deliveries, accept the manual design criterion as Buyer, and approve capture.
-
-Before capture, compare a new loyalty-program request in **Scope changes**. A scope request pauses automatic payment until the buyer decides how to proceed. To replace the agreement, void its authorization and draft a replacement with the new amount and checks. Both parties approve again and the buyer supplies a fresh authorization.
-
-## Configuration and deployment
-
-[Setup guide](docs/SETUP.md): server-side provider credentials, separate buyer/seller sessions, webhook configuration, website allowlists, and the provider-run checklist.
-
-The repository includes a [Dockerfile](Dockerfile) and [Render Blueprint](render.yaml) for a web service, separate browser worker, and PostgreSQL database. Configure the final HTTPS origin, shared database, and provider secrets before running the hosted acceptance checks. Repository setup instructions also provide a local evaluation route.
+See the [validation record](docs/VALIDATION.md) for what has been run and what has not. If Chromium lives in a custom directory, set `PLAYWRIGHT_BROWSERS_PATH` for installation, the app and the tests. On Linux, Chromium may need system packages: `npx playwright install --with-deps chromium`.
 
 ## Limits
 
@@ -114,17 +68,23 @@ The repository includes a [Dockerfile](Dockerfile) and [Render Blueprint](render
 - **Access and hosting:** invitations provide prototype role access. Use managed identity and define record retention before wider deployment. Public artifact links are shareable; evidence and support cases require workspace membership. External PostgreSQL is required for separate web/worker processes. Hosting and model usage incur provider costs.
 - **Walkthrough behavior:** café fixtures are fictional and intentionally broken/fixed. Without an AI key, criteria and summaries use labeled templates and scope advice returns `unclear`. The no-key path does not create an agent-written delivery.
 
+## Deployment
+
+The [Dockerfile](Dockerfile) and [Render Blueprint](render.yaml) define a web service, a separate browser worker and a PostgreSQL database. Configuration, webhooks and the provider-run checklist are in the [setup guide](docs/SETUP.md). `npm run smoke -- <origin>` checks a running deployment without credentials.
+
 ## Project guide
 
-| Path                                   | Purpose                                                                           |
-| -------------------------------------- | --------------------------------------------------------------------------------- |
-| `src/`                                 | React workspace, evidence, standing rules, and resolution screens                 |
-| `server/`                              | Authenticated API, agent adapter, browser worker, persistence, and payment rules  |
-| `tests/`                               | Domain, permissions, payment consistency, recovery, and browser acceptance checks |
-| [Architecture](docs/ARCHITECTURE.md)   | Data flow, boundaries, records, and API routes                                    |
-| [Submission draft](docs/SUBMISSION.md) | Product pitch and submission checklist                                            |
-| [Demo script](docs/AGENT_DEMO.md)      | Agent-first video outline under three minutes                                     |
-| [Validation](docs/VALIDATION.md)       | Evidence of completed checks and pending provider runs                            |
+| Path                                 | Purpose                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `src/`                               | React workspace, evidence, standing rules and resolution screens            |
+| `server/`                            | Authenticated API, repair agent, browser worker, persistence, payment rules |
+| `tests/`                             | Domain, permissions, payment, recovery and browser acceptance tests         |
+| [Architecture](docs/ARCHITECTURE.md) | Data flow, boundaries, records and API routes                               |
+| [Features](docs/FEATURES.md)         | Decision replay, agreement changes, human delivery                          |
+| [Setup](docs/SETUP.md)               | Configuration, provider runs and hosting                                    |
+| [Validation](docs/VALIDATION.md)     | Completed checks and pending provider runs                                  |
+| [Submission](docs/SUBMISSION.md)     | Hackathon text and checklist                                                |
+| [Video guide](docs/AGENT_DEMO.md)    | Timed script and recording steps                                            |
 
 ## License
 

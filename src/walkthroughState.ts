@@ -13,7 +13,11 @@ export function walkthroughState(a: Agreement, rulesEnabled: boolean, failureRev
       r.status === 'completed' &&
       r.results.some((result) => result.status === 'fail'),
   );
-  const correctedRun = a.runs.find((r) => r.url === 'fixture:fixed');
+  // A correction is the authored fixture or an artifact the repair agent submitted.
+  const correctedRun = a.runs.find(
+    (r) => r.url === 'fixture:fixed' || r.url.startsWith('fixture:agent:'),
+  );
+  const agent = a.agentRuns?.[0];
   const currentRun = a.runs[0];
   const running = currentRun && ['queued', 'running'].includes(currentRun.status);
   const required = a.criteria.filter((c) => c.required);
@@ -35,5 +39,14 @@ export function walkthroughState(a: Agreement, rulesEnabled: boolean, failureRev
           : correctedRun || (failedRun && failureReviewed)
             ? 3
             : 2;
-  return { step, failedRun, correctedRun, currentRun, running, passed };
+  return { step, failedRun, correctedRun, currentRun, running, passed, agent };
+}
+// Names the delivery that actually exists, not the path the visitor tried first.
+export function deliverySource(a: Agreement) {
+  const delivery = a.runs.find(
+    (r) => r.url === 'fixture:fixed' || r.url.startsWith('fixture:agent:'),
+  );
+  if (delivery?.artifactId) return 'model-written repair';
+  if (delivery) return 'authored correction';
+  return a.agentTask ? 'repair agent' : 'authored deliveries';
 }

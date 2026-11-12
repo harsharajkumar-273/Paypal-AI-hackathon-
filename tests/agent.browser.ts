@@ -159,3 +159,39 @@ test(
     assert.equal(final.agentRuns![0].artifactId, undefined);
   },
 );
+test(
+  'a script error is reported back so the next attempt can fix it, and a fenced patch still runs',
+  { timeout: 120000 },
+  async () => {
+    const { w, a, runId } = job('agent-script-error');
+    await createWorkspace(w);
+    const seen: string[] = [];
+    const fencedHandler =
+      "```javascript\nconst r = await fetch('/fixtures/reserve', {method:'POST',credentials:'omit',body:new URLSearchParams(new FormData(e.target))});\nconst d = await r.json();\ndocument.querySelector('#feedback').textContent = r.ok ? d.message : 'Unable to reserve.';\n```";
+    await runRepairAgent(w.id, a.id, runId, {
+      fixtureOrigin: origin,
+      repair: async (input) => {
+        assert.match(input.page || '', /<form id="booking"/);
+        assert.ok(!(input.page || '').includes('<style>'));
+        seen.push(input.results.find((r) => r.criterionId === 'booking')?.observed || '');
+        return input.attempt === 1
+          ? {
+              handler:
+                "const r = await fetch('/fixtures/reserve', {method:'POST',body:new URLSearchParams(new FormData(form))});document.querySelector('#feedback').textContent='Your table is reserved.';",
+              explanation: 'Test adapter references a variable that is not in scope.',
+            }
+          : {
+              handler: fencedHandler,
+              explanation: 'Test adapter returns a working patch wrapped in a Markdown fence.',
+            };
+      },
+    });
+    assert.equal(seen.length, 2);
+    assert.match(seen[1], /No successful POST reached the approved endpoint/);
+    assert.match(seen[1], /Page script error: form is not defined/);
+    const final = (await getWorkspace(w.id)).agreements[0];
+    assert.equal(final.agentRuns![0].status, 'completed');
+    assert.ok(!final.agentRuns![0].attempts[1].handler.includes('```'));
+    assert.equal(final.payment.status, 'captured');
+  },
+);
