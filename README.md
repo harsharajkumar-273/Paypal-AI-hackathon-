@@ -80,7 +80,7 @@ An isolated walkthrough with an OpenAI key uses actual model calls and simulated
 
 ## Current verification
 
-The local build passes **78 domain/API/payment/recovery/agreement-change/walkthrough tests and 7 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter or a mocked model response, and simulated payment.
+The local build passes **80 domain/API/payment/recovery/agreement-change/walkthrough tests and 7 real-browser acceptance tests**, plus the TypeScript/Vite build and formatting checks. The browser agent tests use a deterministic model adapter or a mocked model response, and simulated payment.
 
 **PayPal sandbox authentication and a buyer-approved $75 authorization have succeeded. Live AI-generated delivery, sandbox capture/refund, webhook delivery and hosted deployment remain pending.** The [source repository](https://github.com/harsharajkumar-273/Paypal-AI-hackathon-) is public under the MIT license. See the [validation record](docs/VALIDATION.md) for completed checks and the remaining acceptance checklist.
 

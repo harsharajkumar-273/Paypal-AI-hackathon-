@@ -12,7 +12,14 @@ import {
   type Role,
 } from './domain.js';
 import { evaluateAutomaticPayment, rulesFor, utcMonth } from './automation.js';
-import { createOrder, authorizeOrder, capturePayment, voidPayment, paypal } from './paypal.js';
+import {
+  createOrder,
+  authorizeOrder,
+  capturePayment,
+  voidPayment,
+  paypal,
+  paypalConfigured,
+} from './paypal.js';
 import { decisionRecord } from './decisions.js';
 export function find(w: Workspace, id: string): Agreement {
   const a = w.agreements.find((a) => a.id === id);
@@ -229,6 +236,13 @@ export async function capture(
     'capture',
     (a, w) => {
       const evaluatedAt = new Date();
+      // A process without sandbox credentials must not reserve a payment it cannot send. This
+      // happens when a separate worker lacks them; the reservation would stay pending.
+      ensure(
+        a.payment.mode === 'demo' || paypalConfigured(),
+        'This process has no PayPal sandbox credentials, so it did not reserve or send the capture.',
+        503,
+      );
       assertPaymentReady(a, evaluatedAt);
       if (method === 'automatic') {
         const decision = evaluateAutomaticPayment(w, a, evaluatedAt);

@@ -131,12 +131,20 @@ async function checkPayPal() {
         `webhook ID not found in this sandbox app (HTTP ${response.status})`,
       );
     const hook = await response.json();
-    const expected = env('APP_URL').replace(/\/$/, '') + '/api/paypal/webhook';
-    if (hook.url !== expected)
+    // Same order the server uses (server/config.ts): APP_URL, then Render's own URL.
+    const origin = (env('APP_URL') || env('RENDER_EXTERNAL_URL')).replace(/\/$/, '');
+    if (!origin)
       return record(
         'PayPal webhook',
         'fail',
-        `registered for ${hook.url}, but APP_URL expects ${expected}`,
+        `registered for ${hook.url}. Set APP_URL to the public origin this app is served from so it can be compared.`,
+      );
+    const expected = origin + '/api/paypal/webhook';
+    if (hook.url.replace(/\/$/, '') !== expected)
+      return record(
+        'PayPal webhook',
+        'fail',
+        `registered for ${hook.url}, but this app's public origin expects ${expected}`,
       );
     record('PayPal webhook', 'pass', `registered for ${hook.url}`);
   } catch (error) {

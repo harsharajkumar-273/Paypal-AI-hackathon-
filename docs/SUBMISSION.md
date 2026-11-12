@@ -7,7 +7,7 @@ Do these in order. Each step feeds the next.
 1. **Check the machine.** Fill `.env` with the OpenAI key, PayPal sandbox app credentials, and two role invitations, then run `npm run preflight`. Continue when it reports the full live run is ready.
 2. **Do the live run once, off camera.** Follow the [provider-run steps](SETUP.md#paypal-sandbox-run): commission the agent task, approve as both roles, authorize with the sandbox buyer, enable standing rules, start the agent, and wait for the automatic capture. Then report a problem as Buyer and refund as Seller.
 3. **Write down what happened** in the [results table](#live-run-results) below and in [VALIDATION.md](VALIDATION.md). A failed model call or repair is a result too; record it and rerun.
-4. **Record the video** using the [demo script](AGENT_DEMO.md). With the OpenAI key set, the guided demo shows the model-written repair in one flow with simulated payment; use the merchant workspace for the PayPal sandbox capture. Tell one story: failure, model-written fix, independent proof, sandbox capture, decision replay. Leave terms review, scope changes, and the freelancer workflow out of the video.
+4. **Record the video** following the [video guide](AGENT_DEMO.md), which has the spoken script and the clicks. With the OpenAI key set, the guided demo shows the model-written repair in one flow with simulated payment; use the merchant workspace for the PayPal sandbox capture. Tell one story: failure, model-written fix, independent proof, sandbox capture, decision replay. Leave terms review, scope changes, and the freelancer workflow out of the video.
 5. **Upload to YouTube** as public, under three minutes. Label any time compression.
 6. **Host it if time allows.** Deploy the [Render Blueprint](../render.yaml), then run `npm run smoke -- https://your-host`. Otherwise the repository setup instructions are the evaluation route.
 7. **Update the status lines** in the [README](../README.md#current-verification) and the Devpost text below so they match the results table, then paste the text into Devpost.
@@ -61,7 +61,7 @@ The café repair is small on purpose. The same pattern fits any agent task whose
 - **PayPal:** Orders and Payments sandbox APIs for authorization, conditional capture, void, full and partial refund, and reconciliation, with request IDs so a retried call cannot pay twice. Webhooks are signature-verified before processing.
 - **AI:** OpenAI structured outputs write the booking-handler patch from the defective source and the browser observations. The model's output is stored and tested separately; it never decides payment eligibility.
 - **Verification:** a Playwright worker runs real Chromium against the stored artifact under a sandboxed origin and keeps screenshots as evidence.
-- **App:** React and Vite front end, Express API, PostgreSQL (embedded PGlite locally), TypeScript throughout. 78 unit and API tests and 7 real-browser acceptance tests run in CI.
+- **App:** React and Vite front end, Express API, PostgreSQL (embedded PGlite locally), TypeScript throughout. 80 unit and API tests and 7 real-browser acceptance tests run in CI.
 
 ### Challenges
 

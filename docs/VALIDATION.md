@@ -19,7 +19,7 @@
 - TypeScript validation and Vite production build.
 - Initial prototype fresh-source check: npm ci and production build passed without existing node_modules or generated assets. The expanded agent build also passes TypeScript and Vite checks.
 - Source formatting check passed.
-- Current automated suite: 78 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change/walkthrough tests and 7 passing browser acceptance tests.
+- Current automated suite: 80 passing domain/API/standing-rule/payment-adapter/recovery/agreement-change/walkthrough tests and 7 passing browser acceptance tests.
 - Completed the full simulated walkthrough through the interface, including both roles, both deliveries, manual acceptance, scope advice fallback, and receipt.
 - Observed local UI run durations: 7.6 seconds for the broken fixture and 3.8 seconds for the corrected fixture. These are individual development-machine observations, not benchmarks.
 - Real Chromium fixture test: broken delivery returns four automated passes and a failed booking check; corrected delivery returns five automated passes. Screenshots are captured and manual design remains a buyer decision.
@@ -121,4 +121,11 @@ PayPal sandbox OAuth and buyer-approved authorization are confirmed in the provi
 - A failed form check now reports whether a successful POST reached the approved endpoint, whether the exact text was shown, and any page script error. The agent passes this to the model on its second attempt, together with the page markup. A Markdown fence around a returned patch is removed before the artifact is stored.
 - The guided demo offers the repair agent in its fourth chapter when a model key is configured. A browser acceptance case covers it: the route is refused before the failure is reviewed and without a key; a false-success patch fails in Chromium; the revised patch passes five checks and triggers the automatic simulated capture; when no patch passes, nothing is captured and the authored correction still completes the example.
 - That case replaces the OpenAI HTTP response with a mock in the Responses API structured-output shape. The request construction, response parsing, real Chromium checks, and payment rules are exercised; **no actual model call was made**. Completed the same flow through the interface against the same kind of mock. A live model-written repair remains unverified.
-- Current automated suite after these changes: 78 unit/API cases and seven browser acceptance cases.
+- Current automated suite after these changes: 80 unit/API cases and seven browser acceptance cases.
+
+## Review fixes
+
+- **Hosted capture:** a process without PayPal sandbox credentials now refuses to reserve a sandbox capture, so a payment can no longer sit in `capture_pending` with no request sent. The Render Blueprint also gives the worker the PayPal credentials, webhook ID and `APP_URL`. Covered by a payment test that removes the credentials and confirms the payment stays `authorized` and no request is made.
+- **Guided demo label:** the banner names the delivery that exists (model-written repair, authored correction, or repair agent still pending) instead of the path first tried. Covered by a state test, including an agent failure followed by the authored correction.
+- **Preflight:** the webhook comparison uses `APP_URL`, then `RENDER_EXTERNAL_URL`, matching the server. Checked against mocked PayPal responses for a Render-only origin, an `APP_URL` with a trailing slash, a wrong registration, and no origin at all.
+- These checks use mocked provider responses. No live OpenAI call or PayPal sandbox capture, refund, or webhook was made.

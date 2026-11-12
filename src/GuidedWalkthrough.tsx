@@ -18,7 +18,7 @@ import {
   Code2,
 } from 'lucide-react';
 import type { Agreement, Result, Workspace } from '../server/domain';
-import { walkthroughState, walkthroughSteps } from './walkthroughState';
+import { deliverySource, walkthroughState, walkthroughSteps } from './walkthroughState';
 type Props = {
   workspace: Workspace;
   obscured?: boolean;
@@ -309,8 +309,7 @@ export function GuidedWalkthrough({
       <div className="walkthrough-shell">
         <div className="walkthrough-disclosure">
           <span className="walkthrough-live-dot" />
-          Actual browser verification <span>·</span>{' '}
-          {agentChosen ? 'Authored broken page, model-written repair' : 'Authored demo deliveries'}{' '}
+          Actual browser verification <span>·</span> Authored broken page, {deliverySource(a)}{' '}
           <span>·</span> Simulated payments
         </div>
         <ol className="walkthrough-progress" aria-label="Demo progress">
